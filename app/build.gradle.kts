@@ -20,9 +20,12 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
 
-        buildConfigField("String", "GEMINI_API_KEY", "\"${project.findProperty("GEMINI_API_KEY") ?: "\"}\"")
-        buildConfigField("String", "DEEPSEEK_API_KEY", "\"${project.findProperty("DEEPSEEK_API_KEY") ?: "\"}\"")
-        buildConfigField("String", "VIRUSTOTAL_API_KEY", "\"${project.findProperty("VIRUSTOTAL_API_KEY") ?: "\"}\"")
+        val geminiKey = (System.getenv("GEMINI_API_KEY") ?: project.findProperty("GEMINI_API_KEY")?.toString() ?: "")
+        val deepSeekKey = (System.getenv("DEEPSEEK_API_KEY") ?: project.findProperty("DEEPSEEK_API_KEY")?.toString() ?: "")
+        val virusTotalKey = (System.getenv("VIRUSTOTAL_API_KEY") ?: project.findProperty("VIRUSTOTAL_API_KEY")?.toString() ?: "")
+        buildConfigField("String", "GEMINI_API_KEY", "\"$geminiKey\"")
+        buildConfigField("String", "DEEPSEEK_API_KEY", "\"$deepSeekKey\"")
+        buildConfigField("String", "VIRUSTOTAL_API_KEY", "\"$virusTotalKey\"")
     }
 
     buildTypes {
