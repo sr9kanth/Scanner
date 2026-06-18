@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">CleanGuard AI</string>
+    <string name="notification_service_label">CleanGuard Notification Monitor</string>
+    <string name="notification_channel_scan">Scan Results</string>
+    <string name="notification_channel_threats">Threat Alerts</string>
+    <string name="scan_complete">Scan Complete</string>
+    <string name="threats_found">Threats Found</string>
+    <string name="phone_healthy">Your phone looks healthy!</string>
+    <string name="privacy_policy_url">https://cleanguard.ai/privacy</string>
+    <string name="terms_url">https://cleanguard.ai/terms</string>
+</resources>
