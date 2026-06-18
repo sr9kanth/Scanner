@@ -1,126 +1,242 @@
 package com.cleanguard.ai.presentation.notifications
 
-import android.content.Intent
-import android.provider.Settings
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.*
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.*
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.ui.unit.*
 import androidx.navigation.NavController
-import com.cleanguard.ai.domain.model.NotificationStats
-import com.cleanguard.ai.presentation.components.EmptyState
-import com.cleanguard.ai.presentation.components.SectionCard
 import com.cleanguard.ai.presentation.theme.*
+
+data class NotificationAppItem(
+    val appName: String,
+    val packageName: String,
+    val badgeLabel: String,
+    val badgeColor: Color,
+    val badgeBg: Color,
+    val borderColor: Color,
+    val weeklyCount: String,
+    val dailyRate: String,
+    val totalCount: String,
+    val countColor: Color,
+    val showDisableButton: Boolean
+)
+
+private val notificationApps = listOf(
+    NotificationAppItem(
+        appName = "Lucky Rewards",
+        packageName = "com.lucky.rewards.app",
+        badgeLabel = "Spammy",
+        badgeColor = DangerRed,
+        badgeBg = Color(0xFFFFEBEE),
+        borderColor = Color(0xFFFF5722),
+        weeklyCount = "248 this week",
+        dailyRate = "35.4/day",
+        totalCount = "891 total",
+        countColor = DangerRed,
+        showDisableButton = true
+    ),
+    NotificationAppItem(
+        appName = "GigaPromo Deals",
+        packageName = "com.gigapromo.deals",
+        badgeLabel = "Spammy",
+        badgeColor = ReviewAmber,
+        badgeBg = Color(0xFFFFF3E0),
+        borderColor = Color(0xFFFF9800),
+        weeklyCount = "156 this week",
+        dailyRate = "22.3/day",
+        totalCount = "612 total",
+        countColor = ReviewAmber,
+        showDisableButton = true
+    ),
+    NotificationAppItem(
+        appName = "Weather App",
+        packageName = "com.weather.forecast",
+        badgeLabel = "Normal",
+        badgeColor = SafeGreen,
+        badgeBg = Color(0xFFE8F5E9),
+        borderColor = Color(0xFFE0E0E0),
+        weeklyCount = "14 this week",
+        dailyRate = "2.0/day",
+        totalCount = "56 total",
+        countColor = SubtleGray,
+        showDisableButton = false
+    )
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotificationScreen(
-    navController: NavController,
-    viewModel: NotificationViewModel = hiltViewModel()
+    navController: NavController
 ) {
-    val spammy by viewModel.spammyApps.collectAsState()
-    val all by viewModel.allStats.collectAsState()
-    val context = LocalContext.current
-
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Notification Monitor") },
+                title = { Text("Notification Monitor", fontWeight = FontWeight.SemiBold) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = SurfaceLight)
             )
-        }
-    ) { padding ->
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+        },
+        containerColor = BackgroundLight
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .padding(paddingValues)
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            item {
-                SectionCard(title = "Notification Spammers", icon = Icons.Default.NotificationsActive, iconTint = ReviewAmber) {
-                    if (spammy.isEmpty()) {
-                        Text("No notification spammers detected.", style = MaterialTheme.typography.bodyMedium, color = SafeGreen)
-                    } else {
-                        Text("${spammy.size} apps are sending excessive notifications.", style = MaterialTheme.typography.bodyMedium, color = ReviewAmber)
+            // Summary banner
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF8EE)),
+                border = BorderStroke(1.dp, SuspiciousOrange.copy(alpha = 0.4f))
+            ) {
+                Row(
+                    modifier = Modifier.padding(14.dp),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFFFE0B2))
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Notifications,
+                            contentDescription = null,
+                            tint = SuspiciousOrange,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = "5 apps sending too many notifications",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = OnSurface
+                        )
+                        Text(
+                            text = "These apps are flagged as notification spammers and may be draining your attention and battery.",
+                            fontSize = 12.sp,
+                            color = SubtleGray,
+                            lineHeight = 18.sp
+                        )
                     }
                 }
             }
 
-            if (all.isEmpty()) {
-                item {
-                    EmptyState(
-                        icon = Icons.Default.NotificationsOff,
-                        title = "No data yet",
-                        subtitle = "CleanGuard will track notifications after you grant notification access"
-                    )
-                }
-                item {
-                    OutlinedButton(
-                        onClick = { context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Grant Notification Access")
-                    }
-                }
-            } else {
-                items(all, key = { it.packageName }) { stats ->
-                    NotificationStatsCard(stats = stats, context = context)
-                }
+            notificationApps.forEach { app ->
+                NotificationAppCard(app = app)
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
 
 @Composable
-fun NotificationStatsCard(stats: NotificationStats, context: android.content.Context) {
+private fun NotificationAppCard(app: NotificationAppItem) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = if (stats.isSpammy) ReviewAmber.copy(alpha = 0.08f) else CardBackground
-        )
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = SurfaceLight),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(stats.appName, fontWeight = FontWeight.SemiBold)
-                    Text(stats.packageName, style = MaterialTheme.typography.labelSmall, color = SubtleGray)
-                }
-                if (stats.isSpammy) {
-                    Surface(
-                        shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp),
-                        color = ReviewAmber.copy(alpha = 0.15f)
+        Row(modifier = Modifier.fillMaxWidth()) {
+            // Left colored border
+            Box(
+                modifier = Modifier
+                    .width(4.dp)
+                    .fillMaxHeight()
+                    .background(app.borderColor)
+            )
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // Header row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = app.appName,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = OnSurface
+                        )
+                        Text(
+                            text = app.packageName,
+                            fontSize = 11.sp,
+                            color = SubtleGray
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(app.badgeBg)
+                            .padding(horizontal = 10.dp, vertical = 4.dp)
                     ) {
-                        Text("Spammy", modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp), color = ReviewAmber, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
+                        Text(
+                            text = app.badgeLabel,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = app.badgeColor
+                        )
                     }
                 }
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                StatChip(label = "This Week", value = stats.weeklyCount.toString())
-                StatChip(label = "Daily Avg", value = "%.1f".format(stats.dailyAverage))
-                StatChip(label = "Total", value = stats.totalCount.toString())
-            }
-            if (stats.isSpammy) {
-                OutlinedButton(
-                    onClick = {
-                        val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
-                            .apply { data = android.net.Uri.parse("package:${stats.packageName}") }
-                        context.startActivity(intent)
-                    },
+
+                // Stats chips
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Disable Notifications")
+                    StatChip(label = app.weeklyCount, color = if (app.showDisableButton) ReviewAmber else SubtleGray)
+                    StatChip(label = app.dailyRate, color = if (app.showDisableButton) ReviewAmber else SubtleGray)
+                    StatChip(label = app.totalCount, color = app.countColor)
+                }
+
+                if (app.showDisableButton) {
+                    OutlinedButton(
+                        onClick = {},
+                        border = BorderStroke(1.5.dp, SuspiciousOrange),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.NotificationsOff,
+                            contentDescription = null,
+                            tint = SuspiciousOrange,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Disable Notifications",
+                            color = SuspiciousOrange,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
                 }
             }
         }
@@ -128,9 +244,18 @@ fun NotificationStatsCard(stats: NotificationStats, context: android.content.Con
 }
 
 @Composable
-fun StatChip(label: String, value: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(value, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-        Text(label, style = MaterialTheme.typography.labelSmall, color = SubtleGray)
+private fun StatChip(label: String, color: Color) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(color.copy(alpha = 0.12f))
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+    ) {
+        Text(
+            text = label,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = color
+        )
     }
 }

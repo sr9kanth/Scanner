@@ -1,25 +1,25 @@
 package com.cleanguard.ai.presentation.dashboard
 
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.*
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.*
+import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.drawscope.*
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.*
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.cleanguard.ai.domain.model.HealthGrade
-import com.cleanguard.ai.presentation.components.*
 import com.cleanguard.ai.presentation.navigation.Screen
 import com.cleanguard.ai.presentation.theme.*
-import java.text.SimpleDateFormat
-import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -27,119 +27,222 @@ fun DashboardScreen(
     navController: NavController,
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val healthScore = 72
+    val animatedSweep by animateFloatAsState(
+        targetValue = healthScore / 100f * 360f,
+        animationSpec = tween(durationMillis = 1200, easing = LinearOutSlowInEasing),
+        label = "sweep"
+    )
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Column {
-                        Text("CleanGuard AI", fontWeight = FontWeight.Bold)
-                        Text("AI Phone Health Checkup", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            text = "CleanGuard AI",
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = OnSurface
+                        )
+                        Text(
+                            text = "AI Phone Health Checkup",
+                            fontSize = 12.sp,
+                            color = SubtleGray
+                        )
                     }
                 },
                 actions = {
                     IconButton(onClick = { navController.navigate(Screen.Settings.route) }) {
-                        Icon(Icons.Default.Settings, contentDescription = "Settings")
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "Settings",
+                            tint = SubtleGray
+                        )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = BackgroundLight)
             )
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                onClick = { viewModel.startScan() },
-                icon = { Icon(Icons.Default.Search, contentDescription = null) },
-                text = { Text("Scan Now") },
-                containerColor = MaterialTheme.colorScheme.primary
+                onClick = { navController.navigate(Screen.Scanner.route) },
+                containerColor = PrimaryBlue,
+                contentColor = androidx.compose.ui.graphics.Color.White,
+                icon = { Text("🛡") },
+                text = { Text("Scan Now", fontWeight = FontWeight.SemiBold) }
             )
-        }
-    ) { padding ->
+        },
+        bottomBar = {
+            NavigationBar(containerColor = SurfaceLight) {
+                NavigationBarItem(
+                    selected = true,
+                    onClick = {},
+                    icon = { Icon(Icons.Default.Home, contentDescription = "Dashboard") },
+                    label = { Text("Dashboard") }
+                )
+                NavigationBarItem(
+                    selected = false,
+                    onClick = { navController.navigate(Screen.Scanner.route) },
+                    icon = { Icon(Icons.Default.Search, contentDescription = "Scanner") },
+                    label = { Text("Scanner") }
+                )
+                NavigationBarItem(
+                    selected = false,
+                    onClick = { navController.navigate(Screen.AppList.route) },
+                    icon = { Icon(Icons.Default.Apps, contentDescription = "Apps") },
+                    label = { Text("Apps") }
+                )
+                NavigationBarItem(
+                    selected = false,
+                    onClick = { navController.navigate(Screen.Report.route) },
+                    icon = { Icon(Icons.Default.Assessment, contentDescription = "Report") },
+                    label = { Text("Report") }
+                )
+                NavigationBarItem(
+                    selected = false,
+                    onClick = { navController.navigate(Screen.Settings.route) },
+                    icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
+                    label = { Text("Settings") }
+                )
+            }
+        },
+        containerColor = BackgroundLight
+    ) { paddingValues ->
         Column(
             modifier = Modifier
+                .padding(paddingValues)
                 .fillMaxSize()
-                .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            if (uiState.isLoading) {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-            }
-
-            uiState.error?.let { error ->
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = DangerRed.copy(alpha = 0.1f))
-                ) {
-                    Text(
-                        text = error,
-                        modifier = Modifier.padding(12.dp),
-                        color = DangerRed
-                    )
-                }
-            }
-
             // Health Score Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = SurfaceLight),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 Column(
-                    modifier = Modifier.padding(24.dp),
+                    modifier = Modifier.padding(20.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text("Phone Health Score", style = MaterialTheme.typography.titleMedium)
-                    Spacer(Modifier.height(20.dp))
+                    Text(
+                        text = "Phone Health Score",
+                        fontSize = 14.sp,
+                        color = SubtleGray,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                    val score = uiState.healthScore?.score ?: 0
-                    val grade = uiState.healthScore?.grade ?: HealthGrade.AT_RISK
+                    // Health ring
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.size(180.dp)
+                    ) {
+                        Canvas(modifier = Modifier.size(180.dp)) {
+                            val strokeWidth = 18.dp.toPx()
+                            val inset = strokeWidth / 2f
+                            val arcSize = Size(size.width - strokeWidth, size.height - strokeWidth)
+                            val topLeft = Offset(inset, inset)
 
-                    HealthScoreRing(score = score, grade = grade, size = 160)
+                            drawArc(
+                                color = Color(0xFFEEEEEE),
+                                startAngle = -90f,
+                                sweepAngle = 360f,
+                                useCenter = false,
+                                topLeft = topLeft,
+                                size = arcSize,
+                                style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                            )
+                            drawArc(
+                                color = Color(0xFFFF9800),
+                                startAngle = -90f,
+                                sweepAngle = animatedSweep,
+                                useCenter = false,
+                                topLeft = topLeft,
+                                size = arcSize,
+                                style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                            )
+                        }
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = "72",
+                                fontSize = 40.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = OnSurface
+                            )
+                            Text(
+                                text = "out of 100",
+                                fontSize = 12.sp,
+                                color = SubtleGray
+                            )
+                        }
+                    }
 
-                    Spacer(Modifier.height(12.dp))
-                    uiState.lastScanTimestamp?.let { ts ->
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Amber badge
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(Color(0xFFFFF3E0))
+                            .padding(horizontal = 14.dp, vertical = 6.dp)
+                    ) {
                         Text(
-                            text = "Last scan: ${SimpleDateFormat("MMM d, h:mm a", Locale.getDefault()).format(Date(ts))}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            text = "● Needs Attention",
+                            color = ReviewAmber,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold
                         )
-                    } ?: Text(
-                        text = "Tap 'Scan Now' for your first scan",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Last scan: Today at 9:38 AM",
+                        fontSize = 12.sp,
+                        color = SubtleGray
                     )
                 }
             }
 
-            // Stats Grid
-            uiState.healthScore?.let { health ->
-                Text("Overview", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            // Risk Summary
+            Text(
+                text = "RISK SUMMARY",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = SubtleGray,
+                letterSpacing = 1.sp
+            )
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    StatCard(
-                        count = health.highRiskApps,
+                    RiskTile(
+                        count = 3,
                         label = "High Risk\nApps",
-                        color = DangerRed,
-                        icon = Icons.Default.BugReport,
-                        onClick = { navController.navigate(Screen.AppList.route) },
+                        borderColor = DangerRed,
+                        textColor = DangerRed,
+                        bgColor = Color(0xFFFFEBEE),
                         modifier = Modifier.weight(1f)
                     )
-                    StatCard(
-                        count = health.accessibilityRisks,
+                    RiskTile(
+                        count = 1,
                         label = "Accessibility\nRisks",
-                        color = SuspiciousOrange,
-                        icon = Icons.Default.Accessibility,
-                        onClick = { navController.navigate(Screen.Accessibility.route) },
+                        borderColor = ReviewAmber,
+                        textColor = ReviewAmber,
+                        bgColor = Color(0xFFFFF8EE),
                         modifier = Modifier.weight(1f)
                     )
-                    StatCard(
-                        count = health.overlayRisks,
+                    RiskTile(
+                        count = 2,
                         label = "Overlay\nRisks",
-                        color = ReviewAmber,
-                        icon = Icons.Default.Layers,
-                        onClick = { navController.navigate(Screen.Overlay.route) },
+                        borderColor = ReviewAmber,
+                        textColor = ReviewAmber,
+                        bgColor = Color(0xFFFFF8EE),
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -147,77 +250,162 @@ fun DashboardScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    StatCard(
-                        count = health.notificationAbusers,
-                        label = "Notification\nSpammers",
-                        color = ReviewAmber,
-                        icon = Icons.Default.NotificationsActive,
-                        onClick = { navController.navigate(Screen.Notifications.route) },
+                    RiskTile(
+                        count = 5,
+                        label = "Notif.\nSpammers",
+                        borderColor = ReviewAmber,
+                        textColor = ReviewAmber,
+                        bgColor = Color(0xFFFFF8EE),
                         modifier = Modifier.weight(1f)
                     )
-                    StatCard(
-                        count = health.privacyRisks,
+                    RiskTile(
+                        count = 2,
                         label = "Privacy\nRisks",
-                        color = PrimaryBlue,
-                        icon = Icons.Default.Shield,
-                        onClick = { navController.navigate(Screen.AppList.route) },
+                        borderColor = SuspiciousOrange,
+                        textColor = SuspiciousOrange,
+                        bgColor = Color(0xFFFBE9E7),
                         modifier = Modifier.weight(1f)
                     )
-                    Spacer(Modifier.weight(1f))
+                    Spacer(modifier = Modifier.weight(1f))
                 }
             }
 
             // Quick Actions
-            Text("Quick Actions", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                QuickActionRow(
-                    icon = Icons.Default.PhotoCamera,
-                    title = "Analyze a Screenshot",
-                    subtitle = "Upload a screenshot for AI analysis",
-                    onClick = { navController.navigate(Screen.Screenshot.route) }
-                )
-                QuickActionRow(
-                    icon = Icons.Default.Language,
-                    title = "Chrome Cleanup",
-                    subtitle = "Fix browser popups and notification abuse",
-                    onClick = { navController.navigate(Screen.Chrome.route) }
-                )
-                QuickActionRow(
-                    icon = Icons.Default.Assessment,
-                    title = "View Full Report",
-                    subtitle = "Export detailed health report",
-                    onClick = { navController.navigate(Screen.Report.route) }
-                )
+            Text(
+                text = "QUICK ACTIONS",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = SubtleGray,
+                letterSpacing = 1.sp
+            )
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = SurfaceLight),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column {
+                    QuickActionRow(
+                        icon = Icons.Default.Image,
+                        title = "Analyze a Screenshot",
+                        subtitle = "AI scan of suspicious messages or alerts",
+                        onClick = { navController.navigate(Screen.Screenshot.route) }
+                    )
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = DividerColor)
+                    QuickActionRow(
+                        icon = Icons.Default.Language,
+                        title = "Chrome Cleanup",
+                        subtitle = "Block pop-ups, clear data, check extensions",
+                        onClick = { navController.navigate(Screen.Chrome.route) }
+                    )
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = DividerColor)
+                    QuickActionRow(
+                        icon = Icons.Default.Assessment,
+                        title = "View Full Report",
+                        subtitle = "Detailed AI analysis of all detected threats",
+                        onClick = { navController.navigate(Screen.Report.route) }
+                    )
+                }
             }
 
-            Spacer(Modifier.height(80.dp))
+            Spacer(modifier = Modifier.height(80.dp))
         }
     }
 }
 
 @Composable
-fun QuickActionRow(
+private fun RiskTile(
+    count: Int,
+    label: String,
+    borderColor: Color,
+    textColor: Color,
+    bgColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.height(80.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = bgColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, borderColor.copy(alpha = 0.3f))
+    ) {
+        Row(modifier = Modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier
+                    .width(4.dp)
+                    .fillMaxHeight()
+                    .background(borderColor)
+            )
+            Column(
+                modifier = Modifier
+                    .padding(horizontal = 8.dp, vertical = 10.dp),
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = count.toString(),
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = textColor
+                )
+                Text(
+                    text = label,
+                    fontSize = 10.sp,
+                    color = SubtleGray,
+                    lineHeight = 13.sp
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun QuickActionRow(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     title: String,
     subtitle: String,
     onClick: () -> Unit
 ) {
-    Card(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color(0xFFE8F0FE)),
+            contentAlignment = Alignment.Center
         ) {
-            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Medium)
-                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = SubtleGray)
-            }
-            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = SubtleGray)
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = PrimaryBlue,
+                modifier = Modifier.size(22.dp)
+            )
         }
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = OnSurface
+            )
+            Text(
+                text = subtitle,
+                fontSize = 12.sp,
+                color = SubtleGray
+            )
+        }
+        Icon(
+            imageVector = Icons.Default.ChevronRight,
+            contentDescription = null,
+            tint = SubtleGray,
+            modifier = Modifier.size(20.dp)
+        )
     }
 }

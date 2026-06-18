@@ -1,137 +1,226 @@
 package com.cleanguard.ai.presentation.chrome
 
-import android.content.Intent
-import android.net.Uri
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.*
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.*
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.ui.unit.*
 import androidx.navigation.NavController
-import com.cleanguard.ai.presentation.components.SectionCard
-import com.cleanguard.ai.presentation.theme.PrimaryBlue
-import com.cleanguard.ai.presentation.theme.ReviewAmber
+import com.cleanguard.ai.presentation.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChromeScreen(
-    navController: NavController,
-    viewModel: ChromeViewModel = hiltViewModel()
+    navController: NavController
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    val context = LocalContext.current
-
-    val cleanupSteps = listOf(
-        CleanupStep("Remove Notification Permissions", "Many websites trick you into allowing notifications that send spam. We'll help you remove them.", "Open Chrome Settings > Notifications > Remove suspicious sites"),
-        CleanupStep("Clear Browsing Data", "Clearing your browsing history, cookies, and cache can remove adware that's been saved in your browser.", "Open Chrome Settings > Privacy and Security > Clear browsing data"),
-        CleanupStep("Disable Pop-ups", "Make sure pop-ups are blocked so scam websites can't show you fake alerts.", "Open Chrome Settings > Site Settings > Pop-ups and redirects > Blocked"),
-        CleanupStep("Reset Chrome Settings", "If nothing else works, resetting Chrome to its factory settings will remove most browser-based problems.", "Open Chrome Settings > Advanced > Reset settings")
-    )
-
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Chrome Cleanup") },
+                title = { Text("Chrome Cleanup", fontWeight = FontWeight.SemiBold) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = SurfaceLight)
             )
-        }
-    ) { padding ->
+        },
+        containerColor = BackgroundLight
+    ) { paddingValues ->
         Column(
             modifier = Modifier
+                .padding(paddingValues)
                 .fillMaxSize()
-                .padding(padding)
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            SectionCard(title = "Chrome Status", icon = Icons.Default.Language) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Green status card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9))
+            ) {
+                Row(
+                    modifier = Modifier.padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Icon(
-                        if (uiState.isChromeInstalled) Icons.Default.CheckCircle else Icons.Default.Cancel,
+                        imageVector = Icons.Default.CheckCircle,
                         contentDescription = null,
-                        tint = if (uiState.isChromeInstalled) com.cleanguard.ai.presentation.theme.SafeGreen else ReviewAmber
+                        tint = SafeGreen,
+                        modifier = Modifier.size(24.dp)
                     )
-                    Text(if (uiState.isChromeInstalled) "Google Chrome is installed" else "Chrome not found")
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "Chrome is installed",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF2E7D32)
+                    )
                 }
             }
 
-            Text("Cleanup Guide", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Text(
-                "Follow these steps to fix browser-related popup and notification problems. Tap each step to open the right settings page.",
-                style = MaterialTheme.typography.bodyMedium
+                text = "Follow these steps to secure your Chrome browser and reduce unwanted notifications and pop-ups.",
+                fontSize = 13.sp,
+                color = SubtleGray,
+                lineHeight = 20.sp
             )
 
-            cleanupSteps.forEachIndexed { index, step ->
-                CleanupStepCard(
-                    step = step,
-                    stepNumber = index + 1,
-                    isComplete = uiState.currentStep > index,
-                    onClick = {
-                        viewModel.setStep(index + 1)
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://support.google.com/chrome/"))
-                        context.startActivity(intent)
-                    }
+            // Step 1 - completed
+            ChromeStepCard(
+                stepNumber = 1,
+                title = "Disable Notifications",
+                isCompleted = true,
+                isActive = false,
+                pill = "Settings → Apps → Chrome → Notifications → Off"
+            )
+
+            // Step 2 - completed
+            ChromeStepCard(
+                stepNumber = 2,
+                title = "Clear Browsing Data",
+                isCompleted = true,
+                isActive = false,
+                pill = "Chrome Menu → History → Clear Browsing Data"
+            )
+
+            // Step 3 - active
+            ChromeStepCard(
+                stepNumber = 3,
+                title = "Block Pop-ups",
+                isCompleted = false,
+                isActive = true,
+                pill = "Chrome Menu → Settings → Site Settings → Pop-ups"
+            )
+
+            // Step 4 - pending
+            ChromeStepCard(
+                stepNumber = 4,
+                title = "Check Extensions",
+                isCompleted = false,
+                isActive = false,
+                pill = "Chrome Menu → More tools → Extensions"
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Button(
+                onClick = {},
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Language,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Open Chrome",
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp,
+                    color = Color.White
                 )
             }
 
-            Button(
-                onClick = {
-                    val intent = context.packageManager.getLaunchIntentForPackage("com.android.chrome")
-                    if (intent != null) context.startActivity(intent)
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(Icons.Default.Launch, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("Open Chrome")
-            }
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
 
-data class CleanupStep(val title: String, val description: String, val instruction: String)
-
 @Composable
-fun CleanupStepCard(step: CleanupStep, stepNumber: Int, isComplete: Boolean, onClick: () -> Unit) {
+private fun ChromeStepCard(
+    stepNumber: Int,
+    title: String,
+    isCompleted: Boolean,
+    isActive: Boolean,
+    pill: String
+) {
+    val cardAlpha = if (!isCompleted && !isActive) 0.7f else 1f
+
     Card(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isComplete) com.cleanguard.ai.presentation.theme.SafeGreen.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surface
-        )
+            containerColor = SurfaceLight.copy(alpha = cardAlpha)
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = if (isActive) 3.dp else 1.dp
+        ),
+        border = if (isActive) BorderStroke(1.5.dp, PrimaryBlue) else null
     ) {
-        Row(modifier = Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Surface(
-                shape = androidx.compose.foundation.shape.CircleShape,
-                color = if (isComplete) com.cleanguard.ai.presentation.theme.SafeGreen else PrimaryBlue,
-                modifier = Modifier.size(32.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    if (isComplete) {
-                        Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp), tint = androidx.compose.ui.graphics.Color.White)
-                    } else {
-                        Text("$stepNumber", color = androidx.compose.ui.graphics.Color.White, fontWeight = FontWeight.Bold)
-                    }
+        Row(
+            modifier = Modifier.padding(14.dp),
+            verticalAlignment = Alignment.Top
+        ) {
+            // Step indicator
+            if (isCompleted) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFE8F5E9))
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = null,
+                        tint = SafeGreen,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            } else {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(if (isActive) PrimaryBlue else Color(0xFFE0E0E0))
+                ) {
+                    Text(
+                        text = stepNumber.toString(),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isActive) Color.White else SubtleGray
+                    )
                 }
             }
-            Column(modifier = Modifier.weight(1f)) {
-                Text(step.title, fontWeight = FontWeight.SemiBold)
-                Spacer(Modifier.height(4.dp))
-                Text(step.description, style = MaterialTheme.typography.bodySmall)
-                Spacer(Modifier.height(6.dp))
-                Text(step.instruction, style = MaterialTheme.typography.labelSmall, color = PrimaryBlue)
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = if (isCompleted) "$title ✓" else title,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (isCompleted) SafeGreen else OnSurface
+                )
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(Color(0xFFF5F5F5))
+                        .padding(horizontal = 10.dp, vertical = 5.dp)
+                ) {
+                    Text(
+                        text = pill,
+                        fontSize = 11.sp,
+                        color = SubtleGray
+                    )
+                }
             }
         }
     }
