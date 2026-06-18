@@ -41,9 +41,9 @@ class AppScanRepositoryImpl @Inject constructor(
 
     override suspend fun scanInstalledApps(): List<AppInfo> {
         val pm = context.packageManager
-        val apps = pm.getInstalledApplications(PackageManager.GET_META_DATA)
+        val infos = pm.getInstalledApplications(PackageManager.GET_META_DATA)
             .filter { !it.isSystemApp() || it.hasInterestingPermissions(pm) }
-            .map { appInfo -> buildAppInfo(pm, appInfo) }
+        val apps = buildList { for (info in infos) add(buildAppInfo(pm, info)) }
 
         appInfoDao.deleteAll()
         appInfoDao.insertAll(apps.map { it.toEntity() })
@@ -53,7 +53,7 @@ class AppScanRepositoryImpl @Inject constructor(
     override suspend fun getApp(packageName: String): AppInfo? =
         appInfoDao.getApp(packageName)?.toAppInfo()
 
-    private fun buildAppInfo(pm: PackageManager, info: ApplicationInfo): AppInfo {
+    private suspend fun buildAppInfo(pm: PackageManager, info: ApplicationInfo): AppInfo {
         val packageInfo = try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 pm.getPackageInfo(info.packageName, PackageManager.PackageInfoFlags.of(PackageManager.GET_PERMISSIONS.toLong()))
