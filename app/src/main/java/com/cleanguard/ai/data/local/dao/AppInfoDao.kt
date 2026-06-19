@@ -9,7 +9,7 @@ interface AppInfoDao {
     @Query("SELECT * FROM app_info ORDER BY riskScore DESC")
     fun getAllApps(): Flow<List<AppInfoEntity>>
 
-    @Query("SELECT * FROM app_info WHERE riskScore >= 60 ORDER BY riskScore DESC")
+    @Query("SELECT * FROM app_info WHERE riskScore >= 100 ORDER BY riskScore DESC")
     fun getHighRiskApps(): Flow<List<AppInfoEntity>>
 
     @Query("SELECT * FROM app_info WHERE packageName = :packageName")

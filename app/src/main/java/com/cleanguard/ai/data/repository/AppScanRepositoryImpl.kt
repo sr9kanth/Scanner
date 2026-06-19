@@ -84,7 +84,8 @@ class AppScanRepositoryImpl @Inject constructor(
             hasAccessibility = hasAccessibility,
             hasOverlay = hasOverlay,
             hasNotification = hasNotification,
-            packageName = info.packageName
+            packageName = info.packageName,
+            isSystemApp = info.isSystemApp()
         )
 
         return AppInfo(
