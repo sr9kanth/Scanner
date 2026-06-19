@@ -1,5 +1,8 @@
 package com.cleanguard.ai.presentation.chrome
 
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.*
@@ -10,16 +13,50 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.*
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
 import androidx.navigation.NavController
 import com.cleanguard.ai.presentation.theme.*
+
+private const val CHROME_PACKAGE = "com.android.chrome"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChromeScreen(
     navController: NavController
 ) {
+    val context = LocalContext.current
+    val chromeInstalled = remember {
+        try {
+            context.packageManager.getPackageInfo(CHROME_PACKAGE, 0)
+            true
+        } catch (e: Exception) { false }
+    }
+
+    fun openChrome() {
+        val launch = context.packageManager.getLaunchIntentForPackage(CHROME_PACKAGE)
+        if (launch != null) {
+            context.startActivity(launch)
+        } else {
+            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://")))
+        }
+    }
+
+    fun openChromeNotificationSettings() {
+        val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+            putExtra(Settings.EXTRA_APP_PACKAGE, CHROME_PACKAGE)
+        }
+        context.startActivity(intent)
+    }
+
+    fun openChromeAppSettings() {
+        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+            data = Uri.parse("package:$CHROME_PACKAGE")
+        }
+        context.startActivity(intent)
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -29,7 +66,11 @@ fun ChromeScreen(
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = SurfaceLight, titleContentColor = OnSurface, navigationIconContentColor = OnSurface)
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = SurfaceLight,
+                    titleContentColor = OnSurface,
+                    navigationIconContentColor = OnSurface
+                )
             )
         },
         containerColor = BackgroundLight
@@ -42,79 +83,81 @@ fun ChromeScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Green status card
+            // Status card
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9))
+                colors = CardDefaults.cardColors(
+                    containerColor = if (chromeInstalled) Color(0xFFE8F5E9) else Color(0xFFFFEBEE)
+                )
             ) {
                 Row(
                     modifier = Modifier.padding(14.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = Icons.Default.CheckCircle,
+                        imageVector = if (chromeInstalled) Icons.Default.CheckCircle else Icons.Default.Warning,
                         contentDescription = null,
-                        tint = SafeGreen,
+                        tint = if (chromeInstalled) SafeGreen else DangerRed,
                         modifier = Modifier.size(24.dp)
                     )
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
-                        text = "Chrome is installed",
+                        text = if (chromeInstalled) "Chrome is installed" else "Chrome not found",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF2E7D32)
+                        color = if (chromeInstalled) Color(0xFF2E7D32) else DangerRed
                     )
                 }
             }
 
             Text(
-                text = "Follow these steps to secure your Chrome browser and reduce unwanted notifications and pop-ups.",
+                text = "Use the steps below to block Chrome pop-ups and reduce unwanted notifications. Each button opens the relevant settings screen.",
                 fontSize = 13.sp,
                 color = SubtleGray,
                 lineHeight = 20.sp
             )
 
-            // Step 1 - completed
+            // Step 1 — Disable Notifications
             ChromeStepCard(
                 stepNumber = 1,
-                title = "Disable Notifications",
-                isCompleted = true,
-                isActive = false,
-                pill = "Settings → Apps → Chrome → Notifications → Off"
+                title = "Disable Chrome Notifications",
+                description = "Stop Chrome from sending pop-up notifications from websites.",
+                buttonLabel = "Open Notification Settings",
+                onAction = { openChromeNotificationSettings() }
             )
 
-            // Step 2 - completed
+            // Step 2 — Clear Browsing Data
             ChromeStepCard(
                 stepNumber = 2,
                 title = "Clear Browsing Data",
-                isCompleted = true,
-                isActive = false,
-                pill = "Chrome Menu → History → Clear Browsing Data"
+                description = "Remove cookies and site data that may cause unwanted pop-ups. Opens Chrome's app info so you can clear storage.",
+                buttonLabel = "Open Chrome App Info",
+                onAction = { openChromeAppSettings() }
             )
 
-            // Step 3 - active
+            // Step 3 — Block Pop-ups in Chrome
             ChromeStepCard(
                 stepNumber = 3,
-                title = "Block Pop-ups",
-                isCompleted = false,
-                isActive = true,
-                pill = "Chrome Menu → Settings → Site Settings → Pop-ups"
+                title = "Block Pop-ups in Chrome",
+                description = "Inside Chrome: tap Menu (⋮) → Settings → Site Settings → Pop-ups and redirects → turn OFF.",
+                buttonLabel = "Open Chrome",
+                onAction = { openChrome() }
             )
 
-            // Step 4 - pending
+            // Step 4 — Check for suspicious sites
             ChromeStepCard(
                 stepNumber = 4,
-                title = "Check Extensions",
-                isCompleted = false,
-                isActive = false,
-                pill = "Chrome Menu → More tools → Extensions"
+                title = "Review Site Permissions",
+                description = "Inside Chrome: tap Menu (⋮) → Settings → Site Settings → Notifications — remove any sites you don't recognise.",
+                buttonLabel = "Open Chrome",
+                onAction = { openChrome() }
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
             Button(
-                onClick = {},
+                onClick = { openChrome() },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
@@ -145,81 +188,64 @@ fun ChromeScreen(
 private fun ChromeStepCard(
     stepNumber: Int,
     title: String,
-    isCompleted: Boolean,
-    isActive: Boolean,
-    pill: String
+    description: String,
+    buttonLabel: String,
+    onAction: () -> Unit
 ) {
-    val cardAlpha = if (!isCompleted && !isActive) 0.7f else 1f
-
     Card(
-        modifier = Modifier
-            .fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = SurfaceLight.copy(alpha = cardAlpha)
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = if (isActive) 3.dp else 1.dp
-        ),
-        border = if (isActive) BorderStroke(1.5.dp, PrimaryBlue) else null
+        colors = CardDefaults.cardColors(containerColor = SurfaceLight),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Row(
             modifier = Modifier.padding(14.dp),
             verticalAlignment = Alignment.Top
         ) {
-            // Step indicator
-            if (isCompleted) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFFE8F5E9))
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Check,
-                        contentDescription = null,
-                        tint = SafeGreen,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-            } else {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clip(CircleShape)
-                        .background(if (isActive) PrimaryBlue else Color(0xFFE0E0E0))
-                ) {
-                    Text(
-                        text = stepNumber.toString(),
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (isActive) Color.White else SubtleGray
-                    )
-                }
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .background(PrimaryBlue)
+            ) {
+                Text(
+                    text = stepNumber.toString(),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
             }
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.weight(1f)) {
                 Text(
-                    text = if (isCompleted) "$title ✓" else title,
+                    text = title,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (isCompleted) SafeGreen else OnSurface
+                    color = OnSurface
                 )
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(Color(0xFFF5F5F5))
-                        .padding(horizontal = 10.dp, vertical = 5.dp)
+                Text(
+                    text = description,
+                    fontSize = 12.sp,
+                    color = SubtleGray,
+                    lineHeight = 18.sp
+                )
+                OutlinedButton(
+                    onClick = onAction,
+                    border = BorderStroke(1.dp, PrimaryBlue),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                 ) {
-                    Text(
-                        text = pill,
-                        fontSize = 11.sp,
-                        color = SubtleGray
+                    Icon(
+                        imageVector = Icons.Default.OpenInNew,
+                        contentDescription = null,
+                        tint = PrimaryBlue,
+                        modifier = Modifier.size(14.dp)
                     )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(buttonLabel, color = PrimaryBlue, fontSize = 12.sp)
                 }
             }
         }

@@ -1,5 +1,8 @@
 package com.cleanguard.ai.presentation.apps
 
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.*
@@ -10,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.*
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
 import androidx.navigation.NavController
@@ -21,13 +25,25 @@ fun AppDetailScreen(
     packageName: String,
     navController: NavController
 ) {
-    val isLuckyRewards = packageName.contains("lucky") || packageName.contains("rewards")
-    val appName = when {
-        packageName.contains("lucky") -> "Lucky Rewards"
-        packageName.contains("system.cleaner") -> "SystemCleaner Pro"
-        packageName.contains("maps") -> "Google Maps"
-        packageName.contains("calculator") -> "Calculator"
-        else -> packageName.substringAfterLast(".").replaceFirstChar { it.uppercase() }
+    val context = LocalContext.current
+    val appName = packageName.substringAfterLast(".").replaceFirstChar { it.uppercase() }
+
+    fun openUninstall() {
+        val intent = Intent(Intent.ACTION_DELETE).apply {
+            data = Uri.parse("package:$packageName")
+        }
+        context.startActivity(intent)
+    }
+
+    fun openAccessibilitySettings() {
+        context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+    }
+
+    fun openAppSettings() {
+        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+            data = Uri.parse("package:$packageName")
+        }
+        context.startActivity(intent)
     }
 
     Scaffold(
@@ -39,13 +55,17 @@ fun AppDetailScreen(
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = SurfaceLight, titleContentColor = OnSurface, navigationIconContentColor = OnSurface)
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = SurfaceLight,
+                    titleContentColor = OnSurface,
+                    navigationIconContentColor = OnSurface
+                )
             )
         },
         bottomBar = {
             Box(modifier = Modifier.padding(16.dp)) {
                 Button(
-                    onClick = {},
+                    onClick = { openUninstall() },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(52.dp),
@@ -117,24 +137,10 @@ fun AppDetailScreen(
                             color = SubtleGray
                         )
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(Color(0xFFFBE9E7))
-                            .padding(horizontal = 10.dp, vertical = 4.dp)
-                    ) {
-                        Text(
-                            text = "Suspicious",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = SuspiciousOrange
-                        )
-                    }
                 }
             }
 
-            // Screen Access Card
+            // Accessibility permission card
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -174,13 +180,13 @@ fun AppDetailScreen(
                     }
                     Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text(
-                            text = "This app has been granted accessibility/screen access permissions, which allows it to read and interact with other apps on your device. This is a high-risk permission that can expose sensitive information.",
+                            text = "This app may have accessibility or screen access permissions that allow it to read and interact with other apps. This is a high-risk permission.",
                             fontSize = 13.sp,
                             color = SubtleGray,
                             lineHeight = 20.sp
                         )
                         OutlinedButton(
-                            onClick = {},
+                            onClick = { openAccessibilitySettings() },
                             border = BorderStroke(1.5.dp, SuspiciousOrange),
                             shape = RoundedCornerShape(10.dp)
                         ) {
@@ -214,21 +220,22 @@ fun AppDetailScreen(
                     )
                     HorizontalDivider(color = DividerColor)
                     AppDetailRow("Package", packageName)
-                    AppDetailRow("Version", "2.4.1 (build 241)")
-                    AppDetailRow("Installed", "3 months ago")
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                    Spacer(modifier = Modifier.height(4.dp))
+                    OutlinedButton(
+                        onClick = { openAppSettings() },
+                        border = BorderStroke(1.dp, PrimaryBlue),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Source", fontSize = 13.sp, color = SubtleGray)
-                        Text(
-                            text = "Unknown / Sideloaded",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = DangerRed
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = null,
+                            tint = PrimaryBlue,
+                            modifier = Modifier.size(16.dp)
                         )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Open App Settings", color = PrimaryBlue, fontSize = 13.sp)
                     }
-                    AppDetailRow("Permissions", "23 permissions requested")
                 }
             }
 
