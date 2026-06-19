@@ -18,6 +18,7 @@ data class AppInfo(
     val hasOverlayPermission: Boolean,
     val hasNotificationPermission: Boolean,
     val isSystemApp: Boolean,
+    val apkPath: String? = null,
     val aiAssessment: AIThreatAssessment? = null
 )
 

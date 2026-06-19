@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import com.cleanguard.ai.data.local.dao.AppInfoDao
 import com.cleanguard.ai.data.local.entities.AppInfoEntity
+import com.cleanguard.ai.data.remote.dto.VirusTotalStats
 import com.cleanguard.ai.domain.model.*
 import com.cleanguard.ai.domain.repository.AppScanRepository
 import com.cleanguard.ai.engine.RiskScoringEngine
@@ -63,6 +64,16 @@ class AppScanRepositoryImpl @Inject constructor(
         appInfoDao.update(updated)
     }
 
+    override suspend fun updateVirusTotalResult(packageName: String, stats: VirusTotalStats, newRiskScore: Int) {
+        val entity = appInfoDao.getApp(packageName) ?: return
+        val updated = entity.copy(
+            riskScore = newRiskScore,
+            riskCategory = RiskLevel.fromScore(newRiskScore).name,
+            virusTotalResult = Json.encodeToString(stats)
+        )
+        appInfoDao.update(updated)
+    }
+
     private suspend fun buildAppInfo(pm: PackageManager, info: ApplicationInfo): AppInfo {
         val packageInfo = try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -116,7 +127,8 @@ class AppScanRepositoryImpl @Inject constructor(
             hasAccessibilityService = hasAccessibility,
             hasOverlayPermission = hasOverlay,
             hasNotificationPermission = hasNotification,
-            isSystemApp = info.isSystemApp()
+            isSystemApp = info.isSystemApp(),
+            apkPath = info.sourceDir
         )
     }
 
