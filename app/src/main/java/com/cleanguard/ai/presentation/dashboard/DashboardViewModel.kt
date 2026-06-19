@@ -28,6 +28,11 @@ class DashboardViewModel @Inject constructor(
 
     init {
         observeHealthScore()
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            scanAppsUseCase()
+            _uiState.update { it.copy(isLoading = false, lastScanTimestamp = System.currentTimeMillis()) }
+        }
     }
 
     private fun observeHealthScore() {

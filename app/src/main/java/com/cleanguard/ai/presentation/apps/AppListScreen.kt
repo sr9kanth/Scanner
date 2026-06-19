@@ -16,57 +16,24 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.cleanguard.ai.domain.model.AppInfo
+import com.cleanguard.ai.domain.model.RiskLevel
 import com.cleanguard.ai.presentation.navigation.Screen
 import com.cleanguard.ai.presentation.theme.*
 
-data class AppDisplayItem(
-    val appName: String,
-    val packageName: String,
-    val riskLabel: String,
-    val riskColor: Color,
-    val riskBgColor: Color,
-    val score: Int,
-    val borderColor: Color
-)
+private fun RiskLevel.color() = when (this) {
+    RiskLevel.SAFE -> SafeGreen
+    RiskLevel.REVIEW -> ReviewAmber
+    RiskLevel.SUSPICIOUS -> SuspiciousOrange
+    RiskLevel.REMOVE_IMMEDIATELY -> DangerRed
+}
 
-private val staticApps = listOf(
-    AppDisplayItem(
-        appName = "SystemCleaner Pro",
-        packageName = "com.system.cleaner.pro",
-        riskLabel = "High Risk",
-        riskColor = DangerRed,
-        riskBgColor = Color(0xFFFFEBEE),
-        score = 94,
-        borderColor = DangerRed
-    ),
-    AppDisplayItem(
-        appName = "Lucky Rewards",
-        packageName = "com.lucky.rewards.app",
-        riskLabel = "Suspicious",
-        riskColor = SuspiciousOrange,
-        riskBgColor = Color(0xFFFBE9E7),
-        score = 67,
-        borderColor = SuspiciousOrange
-    ),
-    AppDisplayItem(
-        appName = "Google Maps",
-        packageName = "com.google.android.apps.maps",
-        riskLabel = "Safe",
-        riskColor = SafeGreen,
-        riskBgColor = Color(0xFFE8F5E9),
-        score = 8,
-        borderColor = SafeGreen
-    ),
-    AppDisplayItem(
-        appName = "Calculator",
-        packageName = "com.android.calculator2",
-        riskLabel = "Safe",
-        riskColor = SafeGreen,
-        riskBgColor = Color(0xFFE8F5E9),
-        score = 4,
-        borderColor = SafeGreen
-    )
-)
+private fun RiskLevel.bgColor() = when (this) {
+    RiskLevel.SAFE -> Color(0xFFE8F5E9)
+    RiskLevel.REVIEW -> Color(0xFFFFF8E1)
+    RiskLevel.SUSPICIOUS -> Color(0xFFFBE9E7)
+    RiskLevel.REMOVE_IMMEDIATELY -> Color(0xFFFFEBEE)
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -74,19 +41,12 @@ fun AppListScreen(
     navController: NavController,
     viewModel: AppListViewModel = hiltViewModel()
 ) {
-    var searchQuery by remember { mutableStateOf("") }
-    var selectedFilter by remember { mutableStateOf("All") }
+    val uiState by viewModel.uiState.collectAsState()
     val filters = listOf("All", "High Risk", "Suspicious", "Accessibility", "Overlay")
-
-    val filteredApps = staticApps.filter { app ->
-        val matchesSearch = searchQuery.isEmpty() ||
-            app.appName.contains(searchQuery, ignoreCase = true) ||
-            app.packageName.contains(searchQuery, ignoreCase = true)
-        val matchesFilter = selectedFilter == "All" ||
-            (selectedFilter == "High Risk" && app.riskLabel == "High Risk") ||
-            (selectedFilter == "Suspicious" && app.riskLabel == "Suspicious")
-        matchesSearch && matchesFilter
-    }
+    val filterEnums = listOf(
+        AppFilter.ALL, AppFilter.HIGH_RISK, AppFilter.SUSPICIOUS,
+        AppFilter.ACCESSIBILITY, AppFilter.OVERLAY
+    )
 
     Scaffold(
         topBar = {
@@ -98,12 +58,17 @@ fun AppListScreen(
                     }
                 },
                 actions = {
-                    Text(
-                        text = "234 apps",
-                        fontSize = 13.sp,
-                        color = SubtleGray,
-                        modifier = Modifier.padding(end = 16.dp)
-                    )
+                    if (!uiState.isLoading) {
+                        Text(
+                            text = "${uiState.totalCount} apps",
+                            fontSize = 13.sp,
+                            color = SubtleGray,
+                            modifier = Modifier.padding(end = 8.dp)
+                        )
+                        IconButton(onClick = { viewModel.rescan() }) {
+                            Icon(Icons.Default.Refresh, contentDescription = "Rescan", tint = PrimaryBlue)
+                        }
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = SurfaceLight)
             )
@@ -126,8 +91,8 @@ fun AppListScreen(
                 elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
             ) {
                 OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
+                    value = uiState.searchQuery,
+                    onValueChange = { viewModel.setSearchQuery(it) },
                     placeholder = { Text("Search apps...", color = SubtleGray) },
                     leadingIcon = {
                         Icon(Icons.Default.Search, contentDescription = null, tint = SubtleGray)
@@ -150,11 +115,11 @@ fun AppListScreen(
                     .horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                filters.forEach { filter ->
+                filters.forEachIndexed { i, label ->
                     FilterChip(
-                        selected = selectedFilter == filter,
-                        onClick = { selectedFilter = filter },
-                        label = { Text(filter, fontSize = 13.sp) },
+                        selected = uiState.filter == filterEnums[i],
+                        onClick = { viewModel.setFilter(filterEnums[i]) },
+                        label = { Text(label, fontSize = 13.sp) },
                         shape = RoundedCornerShape(20.dp),
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = PrimaryBlue,
@@ -166,26 +131,48 @@ fun AppListScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(filteredApps) { app ->
-                    AppItemCard(
-                        app = app,
-                        onClick = {
-                            navController.navigate(Screen.AppDetail.createRoute(app.packageName))
+            when {
+                uiState.isLoading -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator(color = PrimaryBlue)
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text("Scanning installed apps...", color = SubtleGray, fontSize = 14.sp)
                         }
-                    )
+                    }
                 }
-                item { Spacer(modifier = Modifier.height(16.dp)) }
+                uiState.apps.isEmpty() -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = SafeGreen, modifier = Modifier.size(48.dp))
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text("No apps match this filter", color = OnSurface, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                }
+                else -> {
+                    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(uiState.apps, key = { it.packageName }) { app ->
+                            AppItemCard(
+                                app = app,
+                                onClick = {
+                                    navController.navigate(Screen.AppDetail.createRoute(app.packageName))
+                                }
+                            )
+                        }
+                        item { Spacer(modifier = Modifier.height(16.dp)) }
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun AppItemCard(
-    app: AppDisplayItem,
-    onClick: () -> Unit
-) {
+private fun AppItemCard(app: AppInfo, onClick: () -> Unit) {
+    val riskColor = app.riskLevel.color()
+    val riskBg = app.riskLevel.bgColor()
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -195,12 +182,11 @@ private fun AppItemCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Row(modifier = Modifier.fillMaxWidth()) {
-            // Colored left border
             Box(
                 modifier = Modifier
                     .width(4.dp)
                     .fillMaxHeight()
-                    .background(app.borderColor)
+                    .background(riskColor)
             )
             Row(
                 modifier = Modifier
@@ -208,19 +194,18 @@ private fun AppItemCard(
                     .padding(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Avatar circle
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .size(44.dp)
                         .clip(CircleShape)
-                        .background(app.riskBgColor)
+                        .background(riskBg)
                 ) {
                     Text(
-                        text = app.appName.first().uppercase(),
+                        text = app.appName.first().uppercaseChar().toString(),
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = app.riskColor
+                        color = riskColor
                     )
                 }
                 Spacer(modifier = Modifier.width(12.dp))
@@ -240,24 +225,24 @@ private fun AppItemCard(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(20.dp))
-                            .background(app.riskBgColor)
+                            .background(riskBg)
                             .padding(horizontal = 8.dp, vertical = 3.dp)
                     ) {
                         Text(
-                            text = app.riskLabel,
+                            text = app.riskLevel.label,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = app.riskColor
+                            color = riskColor
                         )
                     }
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = app.score.toString(),
+                        text = app.riskScore.toString(),
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
-                        color = app.riskColor
+                        color = riskColor
                     )
                     Text(text = "score", fontSize = 10.sp, color = SubtleGray)
                 }

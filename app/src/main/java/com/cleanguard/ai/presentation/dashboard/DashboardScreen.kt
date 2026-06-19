@@ -27,7 +27,8 @@ fun DashboardScreen(
     navController: NavController,
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
-    val healthScore = 72
+    val uiState by viewModel.uiState.collectAsState()
+    val healthScore = uiState.healthScore?.score ?: 0
     val animatedSweep by animateFloatAsState(
         targetValue = healthScore / 100f * 360f,
         animationSpec = tween(durationMillis = 1200, easing = LinearOutSlowInEasing),
@@ -156,8 +157,14 @@ fun DashboardScreen(
                                 size = arcSize,
                                 style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
                             )
+                            val arcColor = when {
+                                healthScore >= 85 -> SafeGreen
+                                healthScore >= 65 -> Color(0xFF8BC34A)
+                                healthScore >= 40 -> Color(0xFFFF9800)
+                                else -> DangerRed
+                            }
                             drawArc(
-                                color = Color(0xFFFF9800),
+                                color = arcColor,
                                 startAngle = -90f,
                                 sweepAngle = animatedSweep,
                                 useCenter = false,
@@ -167,40 +174,65 @@ fun DashboardScreen(
                             )
                         }
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = "72",
-                                fontSize = 40.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = OnSurface
-                            )
-                            Text(
-                                text = "out of 100",
-                                fontSize = 12.sp,
-                                color = SubtleGray
-                            )
+                            if (uiState.isLoading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(32.dp),
+                                    color = PrimaryBlue,
+                                    strokeWidth = 3.dp
+                                )
+                            } else {
+                                Text(
+                                    text = healthScore.toString(),
+                                    fontSize = 40.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = OnSurface
+                                )
+                                Text(
+                                    text = "out of 100",
+                                    fontSize = 12.sp,
+                                    color = SubtleGray
+                                )
+                            }
                         }
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // Amber badge
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(Color(0xFFFFF3E0))
-                            .padding(horizontal = 14.dp, vertical = 6.dp)
-                    ) {
-                        Text(
-                            text = "● Needs Attention",
-                            color = ReviewAmber,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                    // Grade badge
+                    val grade = uiState.healthScore?.grade
+                    if (grade != null) {
+                        val badgeBg = when (healthScore) {
+                            in 85..100 -> Color(0xFFE8F5E9)
+                            in 65..84 -> Color(0xFFF9FBE7)
+                            in 40..64 -> Color(0xFFFFF3E0)
+                            else -> Color(0xFFFFEBEE)
+                        }
+                        val badgeColor = when (healthScore) {
+                            in 85..100 -> SafeGreen
+                            in 65..84 -> Color(0xFF8BC34A)
+                            in 40..64 -> ReviewAmber
+                            else -> DangerRed
+                        }
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(badgeBg)
+                                .padding(horizontal = 14.dp, vertical = 6.dp)
+                        ) {
+                            Text(
+                                text = "● ${grade.label}",
+                                color = badgeColor,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Last scan: Today at 9:38 AM",
+                        text = if (uiState.isLoading) "Scanning apps..."
+                               else if (uiState.lastScanTimestamp != null) "Scan complete"
+                               else "Tap Scan Now to begin",
                         fontSize = 12.sp,
                         color = SubtleGray
                     )
@@ -216,13 +248,14 @@ fun DashboardScreen(
                 letterSpacing = 1.sp
             )
 
+            val hs = uiState.healthScore
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     RiskTile(
-                        count = 3,
+                        count = hs?.highRiskApps ?: 0,
                         label = "High Risk\nApps",
                         borderColor = DangerRed,
                         textColor = DangerRed,
@@ -230,7 +263,7 @@ fun DashboardScreen(
                         modifier = Modifier.weight(1f)
                     )
                     RiskTile(
-                        count = 1,
+                        count = hs?.accessibilityRisks ?: 0,
                         label = "Accessibility\nRisks",
                         borderColor = ReviewAmber,
                         textColor = ReviewAmber,
@@ -238,7 +271,7 @@ fun DashboardScreen(
                         modifier = Modifier.weight(1f)
                     )
                     RiskTile(
-                        count = 2,
+                        count = hs?.overlayRisks ?: 0,
                         label = "Overlay\nRisks",
                         borderColor = ReviewAmber,
                         textColor = ReviewAmber,
@@ -251,7 +284,7 @@ fun DashboardScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     RiskTile(
-                        count = 5,
+                        count = hs?.notificationAbusers ?: 0,
                         label = "Notif.\nSpammers",
                         borderColor = ReviewAmber,
                         textColor = ReviewAmber,
@@ -259,7 +292,7 @@ fun DashboardScreen(
                         modifier = Modifier.weight(1f)
                     )
                     RiskTile(
-                        count = 2,
+                        count = hs?.privacyRisks ?: 0,
                         label = "Privacy\nRisks",
                         borderColor = SuspiciousOrange,
                         textColor = SuspiciousOrange,
