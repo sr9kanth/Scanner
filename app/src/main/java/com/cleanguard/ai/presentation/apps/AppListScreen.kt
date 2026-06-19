@@ -51,7 +51,7 @@ fun AppListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("App Analysis", fontWeight = FontWeight.SemiBold) },
+                title = { Text("App Analysis", fontWeight = FontWeight.SemiBold, color = OnSurface) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
@@ -70,7 +70,7 @@ fun AppListScreen(
                         }
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = SurfaceLight)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = SurfaceLight, titleContentColor = OnSurface, navigationIconContentColor = OnSurface)
             )
         },
         containerColor = BackgroundLight
@@ -123,7 +123,8 @@ fun AppListScreen(
                         shape = RoundedCornerShape(20.dp),
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = PrimaryBlue,
-                            selectedLabelColor = Color.White
+                            selectedLabelColor = Color.White,
+                            labelColor = OnSurface
                         )
                     )
                 }
