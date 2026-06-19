@@ -9,3 +9,7 @@
 .cxx
 local.properties
 .claude/
+
+# Release keystore — never commit signing credentials
+keystore/*.keystore
+keystore/*.jks

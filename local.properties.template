@@ -1,0 +1,30 @@
+# Copy this file to local.properties and fill in your values.
+# local.properties is git-ignored — never commit secrets.
+
+# ── Android SDK ──────────────────────────────────────────────────────────────
+# Android Studio sets this automatically. If building from the command line,
+# set it to the root of your Android SDK installation.
+sdk.dir=/path/to/your/android/sdk
+# macOS default: sdk.dir=/Users/YOUR_USERNAME/Library/Android/sdk
+# Linux default: sdk.dir=/home/YOUR_USERNAME/Android/Sdk
+# Windows default: sdk.dir=C\:\\Users\\YOUR_USERNAME\\AppData\\Local\\Android\\sdk
+
+# ── API Keys (optional — app works without them in local-only mode) ──────────
+# Gemini 2.5 Flash — free tier at https://aistudio.google.com/app/apikey
+GEMINI_API_KEY=
+
+# DeepSeek Chat — free tier at https://platform.deepseek.com/api-keys
+DEEPSEEK_API_KEY=
+
+# VirusTotal — free tier (4 lookups/min) at https://www.virustotal.com/gui/my-apikey
+VIRUSTOTAL_API_KEY=
+
+# ── Release Signing (only needed for signed release APKs) ───────────────────
+# Generate a keystore once:
+#   keytool -genkeypair -v -keystore keystore/release.keystore \
+#           -alias cleanguard -keyalg RSA -keysize 2048 -validity 10000
+# Then fill in the values below.
+KEYSTORE_PATH=keystore/release.keystore
+KEYSTORE_PASSWORD=
+KEY_ALIAS=cleanguard
+KEY_PASSWORD=

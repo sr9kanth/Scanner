@@ -6,6 +6,16 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
+// Load local.properties so sdk.dir and API keys are available at build time.
+// This file is git-ignored; never commit secrets to gradle.properties.
+val localProps = java.util.Properties().also { props ->
+    val f = rootProject.file("local.properties")
+    if (f.exists()) props.load(f.inputStream())
+}
+
+fun localProp(key: String): String =
+    System.getenv(key) ?: localProps.getProperty(key) ?: ""
+
 android {
     namespace = "com.cleanguard.ai"
     compileSdk = 35
@@ -20,12 +30,27 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
 
-        val geminiKey = (System.getenv("GEMINI_API_KEY") ?: project.findProperty("GEMINI_API_KEY")?.toString() ?: "")
-        val deepSeekKey = (System.getenv("DEEPSEEK_API_KEY") ?: project.findProperty("DEEPSEEK_API_KEY")?.toString() ?: "")
-        val virusTotalKey = (System.getenv("VIRUSTOTAL_API_KEY") ?: project.findProperty("VIRUSTOTAL_API_KEY")?.toString() ?: "")
-        buildConfigField("String", "GEMINI_API_KEY", "\"$geminiKey\"")
-        buildConfigField("String", "DEEPSEEK_API_KEY", "\"$deepSeekKey\"")
-        buildConfigField("String", "VIRUSTOTAL_API_KEY", "\"$virusTotalKey\"")
+        buildConfigField("String", "GEMINI_API_KEY",     "\"${localProp("GEMINI_API_KEY")}\"")
+        buildConfigField("String", "DEEPSEEK_API_KEY",   "\"${localProp("DEEPSEEK_API_KEY")}\"")
+        buildConfigField("String", "VIRUSTOTAL_API_KEY", "\"${localProp("VIRUSTOTAL_API_KEY")}\"")
+    }
+
+    signingConfigs {
+        // Release signing: reads keystore path and credentials from local.properties or env vars.
+        // Set these in local.properties (never commit them):
+        //   KEYSTORE_PATH=../keystore/release.keystore
+        //   KEYSTORE_PASSWORD=your_store_password
+        //   KEY_ALIAS=cleanguard
+        //   KEY_PASSWORD=your_key_password
+        create("release") {
+            val ksPath = localProp("KEYSTORE_PATH")
+            if (ksPath.isNotEmpty()) {
+                storeFile = rootProject.file(ksPath)
+                storePassword = localProp("KEYSTORE_PASSWORD")
+                keyAlias = localProp("KEY_ALIAS").ifEmpty { "cleanguard" }
+                keyPassword = localProp("KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
@@ -36,6 +61,13 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Use release signing if keystore is configured; fall back to debug signing otherwise.
+            val ks = signingConfigs.getByName("release").storeFile
+            signingConfig = if (ks != null && ks.exists()) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
         debug {
             applicationIdSuffix = ".debug"
@@ -101,3 +133,4 @@ dependencies {
 }
 
 kapt { correctErrorTypes = true }
+

@@ -35,44 +35,96 @@ CleanGuard AI helps parents, grandparents, and non-technical users identify and 
 
 ### Prerequisites
 
-- Android Studio Iguana (2023.2.1) or newer
-- JDK 17
-- Android SDK API 30+
+- Android Studio Iguana (2023.2.1) or newer  
+- JDK 17  
+- Android SDK API 30+ (Android 11)  
+- A physical Android device or API 30+ emulator
 
 ### Setup
 
-1. Clone the repository and open `CleanGuardAI/` in Android Studio
-2. Create a `local.properties` file in the `CleanGuardAI/` root:
+1. Clone the repository and open the root `Scanner/` folder in Android Studio.
 
-```properties
-sdk.dir=/path/to/your/android/sdk
-GEMINI_API_KEY=your_gemini_api_key_here
-DEEPSEEK_API_KEY=your_deepseek_api_key_here
-VIRUSTOTAL_API_KEY=your_virustotal_api_key_here
-```
+2. Copy the template and fill in your values:
+   ```bash
+   cp local.properties.template local.properties
+   ```
+   Then edit `local.properties`:
+   ```properties
+   sdk.dir=/path/to/your/android/sdk          # set by Android Studio automatically
+   GEMINI_API_KEY=your_gemini_key_here        # optional
+   DEEPSEEK_API_KEY=your_deepseek_key_here    # optional
+   VIRUSTOTAL_API_KEY=your_virustotal_key     # optional
+   ```
+   `local.properties` is git-ignored — never commit secrets.
 
-3. Get your API keys:
-   - **Gemini**: https://aistudio.google.com/app/apikey
-   - **DeepSeek**: https://platform.deepseek.com/api-keys
-   - **VirusTotal**: https://www.virustotal.com/gui/my-apikey
+3. Get free API keys (optional — the app works without them in local-only mode):
+   | Service | Free tier | Link |
+   |---------|-----------|------|
+   | Gemini 2.5 Flash | 15 RPM / 1M TPD | https://aistudio.google.com/app/apikey |
+   | DeepSeek Chat | $5 credit | https://platform.deepseek.com/api-keys |
+   | VirusTotal | 4 lookups/min | https://www.virustotal.com/gui/my-apikey |
 
-4. Sync Gradle and run on a device or emulator
+4. Sync Gradle (`File → Sync Project with Gradle Files`) and run on a device or emulator.
+
+### First-run onboarding
+
+On first launch the app shows a 4-step wizard:
+
+1. **Welcome** — overview of CleanGuard
+2. **Permissions** — grant Notification Monitor, Push Notifications, Media Access, Usage Stats (each with a "Tap to Enable" chip that opens the right system settings screen)
+3. **API Keys** — paste keys directly in-app (or skip; can always be added later in Settings)
+4. **Ready** — starts protecting immediately
 
 ### Building
 
 ```bash
-# Debug build
+# Debug APK (signed with Android debug keystore, can be sideloaded)
 ./gradlew assembleDebug
 
-# Release build
+# Release APK (requires signing config in local.properties — see below)
 ./gradlew assembleRelease
 
-# Run tests
+# Run unit tests
 ./gradlew test
 
 # Run lint
 ./gradlew lintDebug
 ```
+
+Output APKs land in `app/build/outputs/apk/`.
+
+### Installing on a device
+
+**Via Android Studio:** click Run ▶ with a device connected.
+
+**Via ADB (command line):**
+```bash
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+```
+
+**Sideloading (without a computer after the first time):**  
+Share the debug APK to the device (email, Drive, etc.), enable *Install unknown apps* for your file manager, then tap the APK.
+
+### Release signing
+
+Generate a keystore once (keep the file and passwords somewhere safe):
+```bash
+mkdir -p keystore
+keytool -genkeypair -v \
+  -keystore keystore/release.keystore \
+  -alias cleanguard \
+  -keyalg RSA -keysize 2048 -validity 10000
+```
+
+Then add to `local.properties`:
+```properties
+KEYSTORE_PATH=keystore/release.keystore
+KEYSTORE_PASSWORD=your_store_password
+KEY_ALIAS=cleanguard
+KEY_PASSWORD=your_key_password
+```
+
+`./gradlew assembleRelease` will then produce a properly signed APK. Without a keystore configured the release build falls back to the debug keystore automatically.
 
 ## Architecture
 
