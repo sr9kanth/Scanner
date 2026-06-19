@@ -63,7 +63,11 @@ fun AppDetailScreen(
             )
         },
         bottomBar = {
-            Box(modifier = Modifier.padding(16.dp)) {
+            Box(modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(16.dp)
+            ) {
                 Button(
                     onClick = { openUninstall() },
                     modifier = Modifier

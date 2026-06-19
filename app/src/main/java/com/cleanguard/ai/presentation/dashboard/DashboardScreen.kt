@@ -342,7 +342,9 @@ fun DashboardScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(80.dp))
+            Spacer(modifier = Modifier
+                .navigationBarsPadding()
+                .height(80.dp))
         }
     }
 }

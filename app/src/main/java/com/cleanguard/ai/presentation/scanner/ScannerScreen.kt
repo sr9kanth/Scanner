@@ -301,6 +301,8 @@ private fun ScanCompleteContent(
             ) {
                 Text("Scan Again", fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = PrimaryBlue)
             }
+
+            Spacer(modifier = Modifier.navigationBarsPadding())
         }
     }
 }
