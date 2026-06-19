@@ -27,9 +27,9 @@ fun SettingsScreen(
     var accessibilityEnabled by remember { mutableStateOf(false) }
     var overlayEnabled by remember { mutableStateOf(false) }
     var notificationAccessEnabled by remember { mutableStateOf(false) }
-    var geminiKey by remember { mutableStateOf("") }
-    var deepSeekKey by remember { mutableStateOf("") }
-    var virusTotalKey by remember { mutableStateOf("") }
+    var geminiKey by remember(uiState.geminiKey) { mutableStateOf(uiState.geminiKey) }
+    var deepSeekKey by remember(uiState.deepSeekKey) { mutableStateOf(uiState.deepSeekKey) }
+    var virusTotalKey by remember(uiState.virusTotalKey) { mutableStateOf(uiState.virusTotalKey) }
     var selectedFrequency by remember { mutableStateOf("Daily") }
     var frequencyExpanded by remember { mutableStateOf(false) }
     val frequencies = listOf("Every 6 hours", "Daily", "Weekly", "Manual only")
@@ -128,6 +128,19 @@ fun SettingsScreen(
                         },
                         shape = RoundedCornerShape(12.dp)
                     )
+                    Button(
+                        onClick = { viewModel.saveApiKeys(geminiKey, deepSeekKey, virusTotalKey) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+                    ) {
+                        Icon(Icons.Default.Save, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Save API Keys", color = Color.White, fontWeight = FontWeight.SemiBold)
+                    }
+                    if (uiState.keysSaved) {
+                        Text("Keys saved", fontSize = 12.sp, color = SafeGreen, modifier = Modifier.padding(top = 4.dp))
+                    }
                 }
             }
 

@@ -53,6 +53,16 @@ class AppScanRepositoryImpl @Inject constructor(
     override suspend fun getApp(packageName: String): AppInfo? =
         appInfoDao.getApp(packageName)?.toAppInfo()
 
+    override suspend fun updateAiAssessment(packageName: String, assessment: AIThreatAssessment, newRiskScore: Int) {
+        val entity = appInfoDao.getApp(packageName) ?: return
+        val updated = entity.copy(
+            riskScore = newRiskScore,
+            riskCategory = RiskLevel.fromScore(newRiskScore).name,
+            aiAssessmentJson = Json.encodeToString(assessment)
+        )
+        appInfoDao.update(updated)
+    }
+
     private suspend fun buildAppInfo(pm: PackageManager, info: ApplicationInfo): AppInfo {
         val packageInfo = try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

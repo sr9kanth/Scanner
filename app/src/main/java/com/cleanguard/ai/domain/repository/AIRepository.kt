@@ -6,4 +6,12 @@ interface AIRepository {
     suspend fun analyzeWithGemini(prompt: String, imageBytes: ByteArray?): Result<AIThreatAssessment>
     suspend fun validateWithDeepSeek(originalPrompt: String, geminiAssessment: AIThreatAssessment): Result<AIThreatAssessment>
     suspend fun generatePlainEnglishExplanation(technicalDetails: String, isGrandparentMode: Boolean): Result<String>
+    suspend fun analyzeApp(
+        appName: String,
+        packageName: String,
+        permissions: List<String>,
+        hasAccessibility: Boolean,
+        hasOverlay: Boolean,
+        installSource: String?
+    ): Result<AIThreatAssessment>
 }

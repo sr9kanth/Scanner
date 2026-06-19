@@ -1,5 +1,8 @@
 package com.cleanguard.ai.domain.model
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class AIThreatAssessment(
     val source: String,
     val riskScore: Int,
