@@ -8,6 +8,7 @@ val SecondaryTeal = Color(0xFF00897B)
 val BackgroundLight = Color(0xFFF8F9FA)
 val SurfaceLight = Color(0xFFFFFFFF)
 val OnSurface = Color(0xFF1C1B1F)
+val OnBackground = Color(0xFF1C1B1F)
 val OutlineColor = Color(0xFFE0E0E0)
 
 val SafeGreen = Color(0xFF4CAF50)

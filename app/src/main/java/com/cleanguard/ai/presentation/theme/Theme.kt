@@ -1,10 +1,8 @@
 package com.cleanguard.ai.presentation.theme
 
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.platform.LocalContext
 
 private val LightColorScheme = lightColorScheme(
     primary = PrimaryBlue,
@@ -12,8 +10,10 @@ private val LightColorScheme = lightColorScheme(
     primaryContainer = androidx.compose.ui.graphics.Color(0xFFD3E2FB),
     secondary = SecondaryTeal,
     background = BackgroundLight,
+    onBackground = OnSurface,
     surface = SurfaceLight,
     onSurface = OnSurface,
+    onSurfaceVariant = OnSurface,
     outline = OutlineColor
 )
 
@@ -25,18 +25,11 @@ fun CleanGuardTheme(
     isGrandparentMode: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        val context = LocalContext.current
-        if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-    } else {
-        LightColorScheme
-    }
-
     val typography = if (isGrandparentMode) GrandparentTypography else Typography
 
     CompositionLocalProvider(LocalGrandparentMode provides isGrandparentMode) {
         MaterialTheme(
-            colorScheme = colorScheme,
+            colorScheme = LightColorScheme,
             typography = typography,
             content = content
         )
