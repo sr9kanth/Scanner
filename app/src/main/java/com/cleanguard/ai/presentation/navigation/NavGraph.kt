@@ -1,6 +1,8 @@
 package com.cleanguard.ai.presentation.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -12,6 +14,7 @@ import com.cleanguard.ai.presentation.apps.AppListScreen
 import com.cleanguard.ai.presentation.chrome.ChromeScreen
 import com.cleanguard.ai.presentation.dashboard.DashboardScreen
 import com.cleanguard.ai.presentation.notifications.NotificationScreen
+import com.cleanguard.ai.presentation.onboarding.OnboardingScreen
 import com.cleanguard.ai.presentation.overlay.OverlayScreen
 import com.cleanguard.ai.presentation.report.ReportScreen
 import com.cleanguard.ai.presentation.scanner.ScannerScreen
@@ -21,7 +24,16 @@ import com.cleanguard.ai.presentation.settings.SettingsScreen
 @Composable
 fun CleanGuardNavGraph() {
     val navController = rememberNavController()
-    NavHost(navController = navController, startDestination = Screen.Dashboard.route) {
+    val context = LocalContext.current
+    val startDest = remember {
+        val prefs = context.getSharedPreferences("cleanguard_prefs", android.content.Context.MODE_PRIVATE)
+        if (prefs.getBoolean("onboarding_complete", false)) Screen.Dashboard.route
+        else Screen.Onboarding.route
+    }
+    NavHost(navController = navController, startDestination = startDest) {
+        composable(Screen.Onboarding.route) {
+            OnboardingScreen(navController = navController)
+        }
         composable(Screen.Dashboard.route) {
             DashboardScreen(navController = navController)
         }

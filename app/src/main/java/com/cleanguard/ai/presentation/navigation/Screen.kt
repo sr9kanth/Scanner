@@ -1,6 +1,7 @@
 package com.cleanguard.ai.presentation.navigation
 
 sealed class Screen(val route: String) {
+    object Onboarding : Screen("onboarding")
     object Dashboard : Screen("dashboard")
     object Scanner : Screen("scanner")
     object AppList : Screen("app_list")
