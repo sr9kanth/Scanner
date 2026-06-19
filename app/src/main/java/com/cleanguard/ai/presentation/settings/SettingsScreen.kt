@@ -29,6 +29,7 @@ fun SettingsScreen(
     var notificationAccessEnabled by remember { mutableStateOf(false) }
     var geminiKey by remember { mutableStateOf("") }
     var deepSeekKey by remember { mutableStateOf("") }
+    var virusTotalKey by remember { mutableStateOf("") }
     var selectedFrequency by remember { mutableStateOf("Daily") }
     var frequencyExpanded by remember { mutableStateOf(false) }
     val frequencies = listOf("Every 6 hours", "Daily", "Weekly", "Manual only")
@@ -106,6 +107,19 @@ fun SettingsScreen(
                         onValueChange = { deepSeekKey = it },
                         label = { Text("DeepSeek API Key") },
                         placeholder = { Text("Enter your DeepSeek API key", color = SubtleGray) },
+                        visualTransformation = PasswordVisualTransformation(),
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        leadingIcon = {
+                            Icon(Icons.Default.VpnKey, contentDescription = null, tint = SubtleGray)
+                        },
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    OutlinedTextField(
+                        value = virusTotalKey,
+                        onValueChange = { virusTotalKey = it },
+                        label = { Text("VirusTotal API Key") },
+                        placeholder = { Text("Enter your VirusTotal API key", color = SubtleGray) },
                         visualTransformation = PasswordVisualTransformation(),
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
