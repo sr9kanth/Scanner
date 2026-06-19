@@ -13,7 +13,9 @@ class ScanAppsUseCase @Inject constructor(
     private val virusTotalRepository: VirusTotalRepository,
     private val apiKeyStore: ApiKeyStore
 ) {
-    suspend operator fun invoke(): Result<List<AppInfo>> = runCatching {
+    suspend operator fun invoke(
+        onProgress: (packageName: String, index: Int, total: Int) -> Unit = { _, _, _ -> }
+    ): Result<List<AppInfo>> = runCatching {
         val apps = appScanRepository.scanInstalledApps()
 
         val toAnalyze = apps
@@ -23,7 +25,9 @@ class ScanAppsUseCase @Inject constructor(
 
         val vtKey = apiKeyStore.getVirusTotalKey()
 
-        for (app in toAnalyze) {
+        toAnalyze.forEachIndexed { index, app ->
+            onProgress(app.packageName, index, toAnalyze.size)
+
             var adjustedScore = app.riskScore
 
             // VirusTotal hash lookup
@@ -55,6 +59,7 @@ class ScanAppsUseCase @Inject constructor(
             }
         }
 
+        onProgress("", toAnalyze.size, toAnalyze.size)
         apps
     }
 }

@@ -33,7 +33,17 @@ class ScannerViewModel @Inject constructor(
 
             _uiState.update { it.copy(phase = ScanPhase.CHECKING_THREATS, progress = 0.4f, currentApp = "Checking threat database...") }
 
-            scanAppsUseCase().fold(
+            scanAppsUseCase { packageName, index, total ->
+                // Map per-app progress into the 0.4f..0.8f band of the overall scan
+                val frac = if (total > 0) index.toFloat() / total.toFloat() else 0f
+                _uiState.update {
+                    it.copy(
+                        phase = ScanPhase.CHECKING_THREATS,
+                        progress = 0.4f + frac * 0.4f,
+                        currentApp = packageName.ifBlank { it.currentApp }
+                    )
+                }
+            }.fold(
                 onSuccess = { apps ->
                     _uiState.update { it.copy(phase = ScanPhase.ANALYZING, progress = 0.8f, currentApp = "Finalizing results...") }
                     _uiState.update { it.copy(phase = ScanPhase.COMPLETE, progress = 1f, scannedApps = apps, currentApp = "") }

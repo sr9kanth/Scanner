@@ -4,6 +4,9 @@ import android.content.Context
 import android.content.pm.PackageManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.cleanguard.ai.domain.model.ChromeDownloadThreat
+import com.cleanguard.ai.domain.usecase.DeleteDownloadUseCase
+import com.cleanguard.ai.domain.usecase.ScanChromeDownloadsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
@@ -13,12 +16,17 @@ import javax.inject.Inject
 data class ChromeUiState(
     val isChromeInstalled: Boolean = false,
     val isChromeEnabled: Boolean = false,
-    val currentStep: Int = 0
+    val currentStep: Int = 0,
+    val downloadThreats: List<ChromeDownloadThreat> = emptyList(),
+    val isScanningDownloads: Boolean = false,
+    val hasScannedDownloads: Boolean = false
 )
 
 @HiltViewModel
 class ChromeViewModel @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val scanChromeDownloadsUseCase: ScanChromeDownloadsUseCase,
+    private val deleteDownloadUseCase: DeleteDownloadUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChromeUiState())
@@ -43,4 +51,29 @@ class ChromeViewModel @Inject constructor(
     }
 
     fun setStep(step: Int) { _uiState.update { it.copy(currentStep = step) } }
+
+    fun scanDownloads() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isScanningDownloads = true) }
+            val threats = scanChromeDownloadsUseCase()
+            _uiState.update {
+                it.copy(
+                    downloadThreats = threats,
+                    isScanningDownloads = false,
+                    hasScannedDownloads = true
+                )
+            }
+        }
+    }
+
+    fun deleteDownload(threat: ChromeDownloadThreat) {
+        viewModelScope.launch {
+            val deleted = deleteDownloadUseCase(threat.filePath)
+            if (deleted) {
+                _uiState.update { state ->
+                    state.copy(downloadThreats = state.downloadThreats.filterNot { it.filePath == threat.filePath })
+                }
+            }
+        }
+    }
 }

@@ -154,7 +154,7 @@ private fun ScanningContent(
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 LinearProgressIndicator(
-                    progress = { 0.4f },
+                    progress = { progress.coerceIn(0f, 1f) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(6.dp)
@@ -166,8 +166,13 @@ private fun ScanningContent(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("Checking 89 of 234 apps", fontSize = 12.sp, color = SubtleGray)
-                    Text("40%", fontSize = 12.sp, color = PrimaryBlue, fontWeight = FontWeight.SemiBold)
+                    Text("Analyzing apps...", fontSize = 12.sp, color = SubtleGray)
+                    Text(
+                        "${(progress.coerceIn(0f, 1f) * 100).toInt()}%",
+                        fontSize = 12.sp,
+                        color = PrimaryBlue,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
             }
 

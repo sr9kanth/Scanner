@@ -19,13 +19,8 @@ data class PhoneHealthScore(
             privacyRisks: Int,
             lastScanTimestamp: Long?
         ): PhoneHealthScore {
-            var score = 100
-            score -= (highRiskApps * 15).coerceAtMost(40)
-            score -= (notificationAbusers * 5).coerceAtMost(20)
-            score -= (accessibilityRisks * 10).coerceAtMost(20)
-            score -= (overlayRisks * 10).coerceAtMost(15)
-            score -= (privacyRisks * 3).coerceAtMost(15)
-            val finalScore = score.coerceIn(0, 100)
+            val deduction = (highRiskApps * 25) + (accessibilityRisks * 10) + (overlayRisks * 10)
+            val finalScore = (100 - deduction).coerceIn(0, 100)
             return PhoneHealthScore(
                 score = finalScore,
                 grade = HealthGrade.fromScore(finalScore),

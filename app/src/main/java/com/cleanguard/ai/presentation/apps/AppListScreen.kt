@@ -42,9 +42,10 @@ fun AppListScreen(
     viewModel: AppListViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val filters = listOf("All", "High Risk", "Suspicious", "Accessibility", "Overlay")
+    val filters = listOf("All", "High Risk", "Suspicious", "Warning", "Safe", "Accessibility", "Overlay")
     val filterEnums = listOf(
         AppFilter.ALL, AppFilter.HIGH_RISK, AppFilter.SUSPICIOUS,
+        AppFilter.WARNING, AppFilter.SAFE,
         AppFilter.ACCESSIBILITY, AppFilter.OVERLAY
     )
 

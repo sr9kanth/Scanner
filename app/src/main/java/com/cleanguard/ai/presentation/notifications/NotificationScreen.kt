@@ -1,5 +1,7 @@
 package com.cleanguard.ai.presentation.notifications
 
+import android.content.Intent
+import android.provider.Settings
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.*
@@ -10,9 +12,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.*
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
+import androidx.core.app.NotificationManagerCompat
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.cleanguard.ai.domain.model.NotificationStats
 import com.cleanguard.ai.presentation.theme.*
 
 data class NotificationAppItem(
@@ -29,53 +35,37 @@ data class NotificationAppItem(
     val showDisableButton: Boolean
 )
 
-private val notificationApps = listOf(
-    NotificationAppItem(
-        appName = "Lucky Rewards",
-        packageName = "com.lucky.rewards.app",
-        badgeLabel = "Spammy",
-        badgeColor = DangerRed,
-        badgeBg = Color(0xFFFFEBEE),
-        borderColor = Color(0xFFFF5722),
-        weeklyCount = "248 this week",
-        dailyRate = "35.4/day",
-        totalCount = "891 total",
-        countColor = DangerRed,
-        showDisableButton = true
-    ),
-    NotificationAppItem(
-        appName = "GigaPromo Deals",
-        packageName = "com.gigapromo.deals",
-        badgeLabel = "Spammy",
-        badgeColor = ReviewAmber,
-        badgeBg = Color(0xFFFFF3E0),
-        borderColor = Color(0xFFFF9800),
-        weeklyCount = "156 this week",
-        dailyRate = "22.3/day",
-        totalCount = "612 total",
-        countColor = ReviewAmber,
-        showDisableButton = true
-    ),
-    NotificationAppItem(
-        appName = "Weather App",
-        packageName = "com.weather.forecast",
-        badgeLabel = "Normal",
-        badgeColor = SafeGreen,
-        badgeBg = Color(0xFFE8F5E9),
-        borderColor = Color(0xFFE0E0E0),
-        weeklyCount = "14 this week",
-        dailyRate = "2.0/day",
-        totalCount = "56 total",
-        countColor = SubtleGray,
-        showDisableButton = false
-    )
+private fun NotificationStats.toAppItem(): NotificationAppItem = NotificationAppItem(
+    appName = appName,
+    packageName = packageName,
+    badgeLabel = if (isSpammy) "Spammy" else "Normal",
+    badgeColor = if (isSpammy) DangerRed else SafeGreen,
+    badgeBg = if (isSpammy) Color(0xFFFFEBEE) else Color(0xFFE8F5E9),
+    borderColor = if (isSpammy) Color(0xFFFF5722) else Color(0xFFE0E0E0),
+    weeklyCount = "$weeklyCount this week",
+    dailyRate = "${"%.1f".format(dailyAverage)}/day",
+    totalCount = "$totalCount total",
+    countColor = if (isSpammy) DangerRed else SubtleGray,
+    showDisableButton = isSpammy
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotificationScreen(
-    navController: NavController
+    navController: NavController,
+    viewModel: NotificationViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
+    val isGranted = remember {
+        NotificationManagerCompat.getEnabledListenerPackages(context).contains(context.packageName)
+    }
+
+    val liveStats by viewModel.allStats.collectAsState()
+
+    val stats = if (isGranted) liveStats else NotificationStats.getSimulationData()
+    val appItems = stats.map { it.toAppItem() }
+    val spammyCount = stats.count { it.isSpammy }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -98,6 +88,61 @@ fun NotificationScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            if (!isGranted) {
+                // Demo simulator mode banner
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F0FE)),
+                    border = BorderStroke(1.dp, PrimaryBlue.copy(alpha = 0.4f))
+                ) {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .background(PrimaryBlue)
+                                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = "DEMO SIMULATOR MODE",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Showing sample data. Turn on the live ad monitor to track real notification spam on your device.",
+                            fontSize = 12.sp,
+                            color = SubtleGray,
+                            lineHeight = 18.sp
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Button(
+                            onClick = {
+                                context.startActivity(
+                                    Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+                                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.NotificationsActive,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Turn on Live Ad Monitor", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                        }
+                    }
+                }
+            }
+
             // Summary banner
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -126,7 +171,7 @@ fun NotificationScreen(
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(
-                            text = "5 apps sending too many notifications",
+                            text = "$spammyCount apps sending too many notifications",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = OnSurface
@@ -141,7 +186,25 @@ fun NotificationScreen(
                 }
             }
 
-            notificationApps.forEach { app ->
+            if (appItems.isEmpty()) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = SurfaceLight),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = SafeGreen)
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text("No notification activity recorded yet.", fontSize = 13.sp, color = OnSurface)
+                    }
+                }
+            }
+
+            appItems.forEach { app ->
                 NotificationAppCard(app = app)
             }
 

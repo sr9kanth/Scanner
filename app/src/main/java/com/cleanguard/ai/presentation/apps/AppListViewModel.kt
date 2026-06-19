@@ -13,7 +13,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 
-enum class AppFilter { ALL, HIGH_RISK, SUSPICIOUS, ACCESSIBILITY, OVERLAY }
+enum class AppFilter { ALL, HIGH_RISK, SUSPICIOUS, WARNING, SAFE, ACCESSIBILITY, OVERLAY }
 
 data class AppListUiState(
     val apps: List<AppInfo> = emptyList(),
@@ -41,6 +41,12 @@ class AppListViewModel @Inject constructor(
                 AppFilter.HIGH_RISK -> appScanRepository.getHighRiskApps()
                 AppFilter.SUSPICIOUS -> appScanRepository.getAllApps().map { list ->
                     list.filter { it.riskLevel == RiskLevel.SUSPICIOUS }
+                }
+                AppFilter.WARNING -> appScanRepository.getAllApps().map { list ->
+                    list.filter { it.riskLevel == RiskLevel.REVIEW }
+                }
+                AppFilter.SAFE -> appScanRepository.getAllApps().map { list ->
+                    list.filter { it.riskLevel == RiskLevel.SAFE }
                 }
                 AppFilter.ACCESSIBILITY -> appScanRepository.getAccessibilityApps()
                 AppFilter.OVERLAY -> appScanRepository.getOverlayApps()

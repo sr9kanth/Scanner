@@ -13,7 +13,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.*
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.*
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.*
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -28,6 +30,14 @@ fun DashboardScreen(
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val isScanning by viewModel.isScanning.collectAsState()
+    val scanProgress by viewModel.scanProgress.collectAsState()
+    val currentlyScanningApp by viewModel.currentlyScanningApp.collectAsState()
+    val animatedProgress by animateFloatAsState(
+        targetValue = scanProgress,
+        animationSpec = tween(durationMillis = 400),
+        label = "scanProgress"
+    )
     val healthScore = uiState.healthScore?.score ?: 0
     val animatedSweep by animateFloatAsState(
         targetValue = healthScore / 100f * 360f,
@@ -118,6 +128,14 @@ fun DashboardScreen(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Scan progress card (visible only while scanning)
+            if (isScanning) {
+                ScanProgressCard(
+                    progress = animatedProgress,
+                    currentApp = currentlyScanningApp
+                )
+            }
+
             // Health Score Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -345,6 +363,60 @@ fun DashboardScreen(
             Spacer(modifier = Modifier
                 .navigationBarsPadding()
                 .height(80.dp))
+        }
+    }
+}
+
+@Composable
+private fun ScanProgressCard(
+    progress: Float,
+    currentApp: String
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F0FE)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(28.dp),
+                color = PrimaryBlue,
+                strokeWidth = 3.dp
+            )
+            Spacer(modifier = Modifier.width(14.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Scanning your apps...",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = OnSurface
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                LinearProgressIndicator(
+                    progress = { progress.coerceIn(0f, 1f) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(6.dp)
+                        .clip(RoundedCornerShape(3.dp)),
+                    color = PrimaryBlue,
+                    trackColor = Color(0xFFD2E3FC)
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = if (currentApp.isNotBlank()) currentApp else "Finalizing results...",
+                    fontSize = 12.sp,
+                    color = PrimaryBlue,
+                    fontFamily = FontFamily.Monospace,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
     }
 }

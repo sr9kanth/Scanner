@@ -2,6 +2,8 @@ package com.cleanguard.ai.engine
 
 import android.Manifest
 import com.cleanguard.ai.data.local.dao.ThreatIntelDao
+import com.cleanguard.ai.domain.model.AppInfo
+import com.cleanguard.ai.domain.model.RiskSignal
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -42,22 +44,48 @@ class RiskScoringEngine @Inject constructor(
         if (permissions.size >= 20) score += 15
         if (hasNotification) score += 10
 
-        val dangerousPermissions = setOf(
-            Manifest.permission.READ_CONTACTS,
-            Manifest.permission.READ_SMS,
-            Manifest.permission.RECORD_AUDIO,
-            Manifest.permission.CAMERA,
-            Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.READ_CALL_LOG,
-            "android.permission.BIND_DEVICE_ADMIN",
-            "android.permission.CHANGE_NETWORK_STATE"
-        )
-        val dangerousCount = permissions.count { it in dangerousPermissions }
+        val dangerousCount = permissions.count { it in DANGEROUS_PERMISSIONS }
         if (dangerousCount >= 5) score += 10
 
         score += threatBonus
 
         return score.coerceIn(0, 200)
+    }
+
+    /**
+     * Produces a human-readable breakdown of the signals that contributed to an app's risk
+     * score. Mirrors the point values applied in [calculateScore]. Display-only — does not
+     * touch the threat DB, so it is safe to call on the main thread.
+     */
+    fun describeSignals(app: AppInfo): List<RiskSignal> {
+        if (isTrustedSystemPackage(app.packageName, app.isSystemApp)) {
+            return listOf(RiskSignal("Trusted system / OEM app", 0))
+        }
+
+        val signals = mutableListOf<RiskSignal>()
+
+        if (app.hasAccessibilityService) signals += RiskSignal("Accessibility Service Requested", 40)
+        if (app.hasOverlayPermission) signals += RiskSignal("Draw-Over-Other-Apps (overlay) permission", 30)
+
+        val installSource = app.installerPackage
+        val isFromPlayStore = installSource == "com.android.vending"
+        if (!isFromPlayStore && installSource != null) {
+            signals += RiskSignal("Installed from outside the Play Store", 30)
+        }
+        if (installSource == null && !app.isSystemApp) {
+            signals += RiskSignal("Unknown install source (side-loaded)", 30)
+        }
+
+        val thirtyDaysAgo = System.currentTimeMillis() - (30L * 24 * 60 * 60 * 1000)
+        if (app.installDate > thirtyDaysAgo) signals += RiskSignal("Recently installed (last 30 days)", 15)
+
+        if (app.permissions.size >= 20) signals += RiskSignal("Requests an unusually large number of permissions", 15)
+        if (app.hasNotificationPermission) signals += RiskSignal("Can post notifications", 10)
+
+        val dangerousCount = app.permissions.count { it in DANGEROUS_PERMISSIONS }
+        if (dangerousCount >= 5) signals += RiskSignal("Holds $dangerousCount sensitive permissions", 10)
+
+        return signals
     }
 
     private fun isTrustedSystemPackage(packageName: String, isSystemApp: Boolean): Boolean {
@@ -94,5 +122,18 @@ class RiskScoringEngine @Inject constructor(
         if (threatIntelDao.getBrowserHijacker(packageName) != null) bonus += 85
         if (threatIntelDao.getNotificationAbuser(packageName) != null) bonus += 50
         return bonus
+    }
+
+    companion object {
+        private val DANGEROUS_PERMISSIONS = setOf(
+            Manifest.permission.READ_CONTACTS,
+            Manifest.permission.READ_SMS,
+            Manifest.permission.RECORD_AUDIO,
+            Manifest.permission.CAMERA,
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.READ_CALL_LOG,
+            "android.permission.BIND_DEVICE_ADMIN",
+            "android.permission.CHANGE_NETWORK_STATE"
+        )
     }
 }

@@ -51,3 +51,10 @@ data class KnownNotificationAbuserEntity(
     val reason: String,
     val addedAt: Long = System.currentTimeMillis()
 )
+
+@Entity(tableName = "exodus_trackers")
+data class ExodusTrackerEntity(
+    @PrimaryKey val packageName: String,
+    val appName: String,
+    val trackerCount: Int
+)

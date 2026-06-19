@@ -16,7 +16,9 @@ import androidx.compose.ui.graphics.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.cleanguard.ai.domain.model.ChromeDownloadThreat
 import com.cleanguard.ai.presentation.theme.*
 
 private const val CHROME_PACKAGE = "com.android.chrome"
@@ -24,9 +26,11 @@ private const val CHROME_PACKAGE = "com.android.chrome"
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChromeScreen(
-    navController: NavController
+    navController: NavController,
+    viewModel: ChromeViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
+    val uiState by viewModel.uiState.collectAsState()
     val chromeInstalled = remember {
         try {
             context.packageManager.getPackageInfo(CHROME_PACKAGE, 0)
@@ -83,6 +87,18 @@ fun ChromeScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            // ── Section A — Downloads Scanner ──────────────────────────────
+            DownloadsScannerSection(
+                isScanning = uiState.isScanningDownloads,
+                hasScanned = uiState.hasScannedDownloads,
+                threats = uiState.downloadThreats,
+                onScan = { viewModel.scanDownloads() },
+                onDelete = { viewModel.deleteDownload(it) }
+            )
+
+            Divider(color = SubtleGray.copy(alpha = 0.25f))
+
+            // ── Section B — Pop-up Cleanup Wizard ──────────────────────────
             // Status card
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -182,6 +198,188 @@ fun ChromeScreen(
             Spacer(modifier = Modifier
                 .navigationBarsPadding()
                 .height(16.dp))
+        }
+    }
+}
+
+@Composable
+private fun DownloadsScannerSection(
+    isScanning: Boolean,
+    hasScanned: Boolean,
+    threats: List<ChromeDownloadThreat>,
+    onScan: () -> Unit,
+    onDelete: (ChromeDownloadThreat) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = SurfaceLight),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.Download,
+                    contentDescription = null,
+                    tint = PrimaryBlue,
+                    modifier = Modifier.size(22.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Scan Chrome Downloads",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = OnSurface
+                )
+            }
+
+            Text(
+                text = "Check the Downloads folder for risky installer files (.apk) that Chrome may have downloaded.",
+                fontSize = 12.sp,
+                color = SubtleGray,
+                lineHeight = 18.sp
+            )
+
+            Button(
+                onClick = onScan,
+                enabled = !isScanning,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Scan Chrome downloaded files",
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp,
+                    color = Color.White
+                )
+            }
+
+            if (isScanning) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = PrimaryBlue
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "Scanning downloads…",
+                        fontSize = 13.sp,
+                        color = SubtleGray
+                    )
+                }
+            }
+
+            if (hasScanned && !isScanning) {
+                if (threats.isEmpty()) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = SafeGreen,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = "Clean! No rogue Chrome download packages found.",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color(0xFF2E7D32)
+                            )
+                        }
+                    }
+                } else {
+                    threats.forEach { threat ->
+                        DownloadThreatCard(threat = threat, onDelete = { onDelete(threat) })
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DownloadThreatCard(
+    threat: ChromeDownloadThreat,
+    onDelete: () -> Unit
+) {
+    val riskColor = when {
+        threat.riskScore >= 70 -> DangerRed
+        threat.riskScore >= 40 -> SuspiciousOrange
+        else -> SafeGreen
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = BackgroundLight),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(14.dp),
+            verticalAlignment = Alignment.Top
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = threat.label,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = OnSurface
+                )
+                Text(
+                    text = threat.fileName + " · " + threat.fileSizeFormatted,
+                    fontSize = 12.sp,
+                    color = SubtleGray
+                )
+                Text(
+                    text = threat.explanation,
+                    fontSize = 12.sp,
+                    color = OnSurface,
+                    lineHeight = 18.sp
+                )
+                Text(
+                    text = "Risk score: ${threat.riskScore}/100",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = riskColor
+                )
+            }
+
+            IconButton(onClick = onDelete) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Delete file",
+                    tint = DangerRed
+                )
+            }
         }
     }
 }

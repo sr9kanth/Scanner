@@ -1,5 +1,6 @@
 package com.cleanguard.ai.presentation.report
 
+import android.content.Intent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -9,6 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -27,6 +29,7 @@ fun ReportScreen(
     viewModel: ReportViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
 
     Scaffold(
         topBar = {
@@ -38,8 +41,18 @@ fun ReportScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { /* TODO: Share report */ }) {
-                        Icon(Icons.Default.Share, "Share")
+                    IconButton(onClick = {
+                        val reportText = viewModel.buildReportText()
+                        val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_SUBJECT, "CleanGuard AI Security Diagnostic")
+                            putExtra(Intent.EXTRA_TEXT, reportText)
+                        }
+                        context.startActivity(
+                            Intent.createChooser(sendIntent, "Share Health Diagnostic")
+                        )
+                    }) {
+                        Icon(Icons.Default.Share, "Share Health Diagnostic")
                     }
                 }
             )
