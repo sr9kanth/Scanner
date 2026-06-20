@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
@@ -8,7 +10,7 @@ plugins {
 
 // Load local.properties so sdk.dir and API keys are available at build time.
 // This file is git-ignored; never commit secrets to gradle.properties.
-val localProps = java.util.Properties().also { props ->
+val localProps = Properties().also { props ->
     val f = rootProject.file("local.properties")
     if (f.exists()) props.load(f.inputStream())
 }
