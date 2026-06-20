@@ -61,9 +61,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // Use release signing if keystore is configured; fall back to debug signing otherwise.
-            val ks = signingConfigs.getByName("release").storeFile
-            signingConfig = if (ks != null && ks.exists()) {
+            signingConfig = if (localProp("KEYSTORE_PATH").isNotEmpty()) {
                 signingConfigs.getByName("release")
             } else {
                 signingConfigs.getByName("debug")
