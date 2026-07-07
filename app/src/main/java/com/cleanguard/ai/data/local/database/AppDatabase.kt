@@ -15,10 +15,9 @@ import com.cleanguard.ai.data.local.entities.*
         KnownFakeCleanerEntity::class,
         KnownFakeAntivirusEntity::class,
         KnownBrowserHijackerEntity::class,
-        KnownNotificationAbuserEntity::class,
-        ExodusTrackerEntity::class
+        KnownNotificationAbuserEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {

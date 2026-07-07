@@ -140,7 +140,8 @@ Return ONLY valid JSON with this exact structure:
             Please validate and provide your assessment."""
 
         val response = deepSeekApi.chatCompletions(
-            DeepSeekRequest(
+            authorization = "Bearer $key",
+            request = DeepSeekRequest(
                 messages = listOf(
                     DeepSeekMessage("system", systemPrompt),
                     DeepSeekMessage("user", userMessage)

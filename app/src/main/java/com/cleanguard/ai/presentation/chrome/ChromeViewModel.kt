@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cleanguard.ai.domain.model.ChromeDownloadThreat
 import com.cleanguard.ai.domain.usecase.DeleteDownloadUseCase
+import com.cleanguard.ai.domain.usecase.DownloadScanResult
 import com.cleanguard.ai.domain.usecase.ScanChromeDownloadsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -19,7 +20,8 @@ data class ChromeUiState(
     val currentStep: Int = 0,
     val downloadThreats: List<ChromeDownloadThreat> = emptyList(),
     val isScanningDownloads: Boolean = false,
-    val hasScannedDownloads: Boolean = false
+    val hasScannedDownloads: Boolean = false,
+    val needsStoragePermission: Boolean = false
 )
 
 @HiltViewModel
@@ -54,14 +56,22 @@ class ChromeViewModel @Inject constructor(
 
     fun scanDownloads() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isScanningDownloads = true) }
-            val threats = scanChromeDownloadsUseCase()
-            _uiState.update {
-                it.copy(
-                    downloadThreats = threats,
-                    isScanningDownloads = false,
-                    hasScannedDownloads = true
-                )
+            _uiState.update { it.copy(isScanningDownloads = true, needsStoragePermission = false) }
+            when (val result = scanChromeDownloadsUseCase()) {
+                is DownloadScanResult.PermissionRequired -> _uiState.update {
+                    it.copy(
+                        isScanningDownloads = false,
+                        hasScannedDownloads = false,
+                        needsStoragePermission = true
+                    )
+                }
+                is DownloadScanResult.Completed -> _uiState.update {
+                    it.copy(
+                        downloadThreats = result.threats,
+                        isScanningDownloads = false,
+                        hasScannedDownloads = true
+                    )
+                }
             }
         }
     }

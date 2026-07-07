@@ -212,6 +212,7 @@ private fun PermissionsPage() {
     var pushNotifGranted by remember { mutableStateOf(false) }
     var mediaGranted by remember { mutableStateOf(false) }
     var usageStatsGranted by remember { mutableStateOf(false) }
+    var allFilesGranted by remember { mutableStateOf(false) }
 
     fun refreshPermissions() {
         notificationListenerGranted = androidx.core.app.NotificationManagerCompat
@@ -239,6 +240,7 @@ private fun PermissionsPage() {
             android.os.Process.myUid(),
             context.packageName
         ) == AppOpsManager.MODE_ALLOWED
+        allFilesGranted = android.os.Environment.isExternalStorageManager()
     }
 
     // Refresh on lifecycle resume (user returning from Settings)
@@ -332,6 +334,21 @@ private fun PermissionsPage() {
                         context.startActivity(
                             Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
                                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        )
+                    }
+                )
+                HorizontalDivider(color = DividerColor)
+                PermissionItem(
+                    icon = Icons.Default.Folder,
+                    name = "All Files Access",
+                    description = "Lets CleanGuard scan downloaded APK installers",
+                    granted = allFilesGranted,
+                    onTap = {
+                        context.startActivity(
+                            Intent(
+                                Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                                android.net.Uri.parse("package:${context.packageName}")
+                            ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         )
                     }
                 )

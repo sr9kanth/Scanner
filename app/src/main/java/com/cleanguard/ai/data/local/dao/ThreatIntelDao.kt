@@ -23,9 +23,6 @@ interface ThreatIntelDao {
     @Query("SELECT * FROM known_notification_abusers WHERE packageName = :pkg")
     suspend fun getNotificationAbuser(pkg: String): KnownNotificationAbuserEntity?
 
-    @Query("SELECT * FROM exodus_trackers WHERE packageName = :pkg")
-    suspend fun getExodusTracker(pkg: String): ExodusTrackerEntity?
-
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAdware(list: List<KnownAdwareEntity>)
 
@@ -43,7 +40,4 @@ interface ThreatIntelDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertNotificationAbusers(list: List<KnownNotificationAbuserEntity>)
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertExodusTrackers(items: List<ExodusTrackerEntity>)
 }

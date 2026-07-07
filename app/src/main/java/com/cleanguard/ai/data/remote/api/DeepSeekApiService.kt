@@ -7,6 +7,7 @@ import retrofit2.http.*
 interface DeepSeekApiService {
     @POST("chat/completions")
     suspend fun chatCompletions(
+        @Header("Authorization") authorization: String,
         @Body request: DeepSeekRequest
     ): DeepSeekResponse
 }

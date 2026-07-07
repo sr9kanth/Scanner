@@ -91,6 +91,7 @@ fun ChromeScreen(
             DownloadsScannerSection(
                 isScanning = uiState.isScanningDownloads,
                 hasScanned = uiState.hasScannedDownloads,
+                needsStoragePermission = uiState.needsStoragePermission,
                 threats = uiState.downloadThreats,
                 onScan = { viewModel.scanDownloads() },
                 onDelete = { viewModel.deleteDownload(it) }
@@ -206,10 +207,12 @@ fun ChromeScreen(
 private fun DownloadsScannerSection(
     isScanning: Boolean,
     hasScanned: Boolean,
+    needsStoragePermission: Boolean,
     threats: List<ChromeDownloadThreat>,
     onScan: () -> Unit,
     onDelete: (ChromeDownloadThreat) -> Unit
 ) {
+    val context = LocalContext.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -265,6 +268,53 @@ private fun DownloadsScannerSection(
                     fontSize = 14.sp,
                     color = Color.White
                 )
+            }
+
+            if (needsStoragePermission) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3E0))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Warning,
+                                contentDescription = null,
+                                tint = Color(0xFFE65100),
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Files access needed",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFFE65100)
+                            )
+                        }
+                        Text(
+                            text = "CleanGuard can't read the Downloads folder without \"All files access\". Grant it in system settings, then scan again.",
+                            fontSize = 12.sp,
+                            color = OnSurface,
+                            lineHeight = 18.sp
+                        )
+                        OutlinedButton(
+                            onClick = {
+                                val intent = Intent(
+                                    Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                                    Uri.parse("package:${context.packageName}")
+                                )
+                                context.startActivity(intent)
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Open settings", fontSize = 13.sp)
+                        }
+                    }
+                }
             }
 
             if (isScanning) {

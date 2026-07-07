@@ -54,18 +54,36 @@ class RiskScoringEngine @Inject constructor(
 
     /**
      * Produces a human-readable breakdown of the signals that contributed to an app's risk
-     * score. Mirrors the point values applied in [calculateScore]. Display-only — does not
-     * touch the threat DB, so it is safe to call on the main thread.
+     * score. Mirrors the point values applied in [calculateScore], including threat-DB hits.
      */
-    fun describeSignals(app: AppInfo): List<RiskSignal> {
-        if (isTrustedSystemPackage(app.packageName, app.isSystemApp)) {
+    suspend fun describeSignals(app: AppInfo): List<RiskSignal> {
+        val signals = mutableListOf<RiskSignal>()
+
+        threatIntelDao.getAdware(app.packageName)?.let {
+            signals += RiskSignal("Listed in known adware database", 80)
+        }
+        threatIntelDao.getScamApp(app.packageName)?.let {
+            signals += RiskSignal("Listed in known scam-app database", 100)
+        }
+        threatIntelDao.getFakeCleaner(app.packageName)?.let {
+            signals += RiskSignal("Listed in known fake-cleaner database", 90)
+        }
+        threatIntelDao.getFakeAntivirus(app.packageName)?.let {
+            signals += RiskSignal("Listed in known fake-antivirus database", 90)
+        }
+        threatIntelDao.getBrowserHijacker(app.packageName)?.let {
+            signals += RiskSignal("Listed in known browser-hijacker database", 85)
+        }
+        threatIntelDao.getNotificationAbuser(app.packageName)?.let {
+            signals += RiskSignal("Listed in known notification-abuser database", 50)
+        }
+
+        if (isTrustedSystemPackage(app.packageName, app.isSystemApp) && signals.isEmpty()) {
             return listOf(RiskSignal("Trusted system / OEM app", 0))
         }
 
-        val signals = mutableListOf<RiskSignal>()
-
-        if (app.hasAccessibilityService) signals += RiskSignal("Accessibility Service Requested", 40)
-        if (app.hasOverlayPermission) signals += RiskSignal("Draw-Over-Other-Apps (overlay) permission", 30)
+        if (app.hasAccessibilityService) signals += RiskSignal("Accessibility service is enabled", 40)
+        if (app.hasOverlayPermission) signals += RiskSignal("Can draw over other apps (overlay granted)", 30)
 
         val installSource = app.installerPackage
         val isFromPlayStore = installSource == "com.android.vending"

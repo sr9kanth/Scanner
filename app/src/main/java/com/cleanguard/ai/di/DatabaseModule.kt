@@ -32,58 +32,78 @@ object DatabaseModule {
                         seedThreatIntel(db)
                     }
                 }
+
+                // fallbackToDestructiveMigration recreates tables without calling onCreate
+                override fun onDestructiveMigration(db: SupportSQLiteDatabase) {
+                    super.onDestructiveMigration(db)
+                    CoroutineScope(Dispatchers.IO).launch {
+                        seedThreatIntel(db)
+                    }
+                }
             })
             .build()
 
+    /**
+     * Bootstrap threat-intel entries. Every package below is a real, publicly documented
+     * malicious app that was removed from Google Play:
+     *  - Joker premium-subscription fraud family (Check Point research, April 2020)
+     *  - HiddenAds fake-cleaner adware campaign, 8M+ installs (McAfee Labs, 2022)
+     *  - SharkBot banking-trojan droppers posing as antivirus (Check Point research, March 2022)
+     */
     private fun seedThreatIntel(db: SupportSQLiteDatabase) {
         val now = System.currentTimeMillis()
 
-        // known_adware: packageName, displayName, reason, addedAt
+        // known_adware / known_fake_cleaners: HiddenAds campaign (McAfee Labs, 2022)
         db.execSQL(
             "INSERT OR REPLACE INTO known_adware (packageName, displayName, reason, addedAt) VALUES " +
-                "('com.notification.lucky.rewards', 'Lucky Rewards', 'Known adware', $now)," +
-                "('com.battery.saver.boost', 'Battery Saver Boost', 'Known adware', $now)"
+                "('cn.junk.clean.plp', 'Junk Cleaner', 'HiddenAds adware (McAfee Labs 2022)', $now)," +
+                "('com.easy.clean.ipz', 'EasyCleaner', 'HiddenAds adware (McAfee Labs 2022)', $now)," +
+                "('com.power.doctor.mnb', 'Power Doctor', 'HiddenAds adware (McAfee Labs 2022)', $now)," +
+                "('org.stemp.fll.clean', 'Full Clean - Clean Cache', 'HiddenAds adware (McAfee Labs 2022)', $now)," +
+                "('org.qck.cle.oyo', 'Quick Cleaner', 'HiddenAds adware (McAfee Labs 2022)', $now)," +
+                "('org.clean.sys.lunch', 'Keep Clean', 'HiddenAds adware (McAfee Labs 2022)', $now)"
         )
 
-        // known_scam_apps: packageName, displayName, scamType, reason, addedAt
+        // known_scam_apps: Joker premium-SMS/subscription fraud family (Check Point, 2020)
         db.execSQL(
             "INSERT OR REPLACE INTO known_scam_apps (packageName, displayName, scamType, reason, addedAt) VALUES " +
-                "('com.scam.giftcards.win', 'Gift Cards Win', 'gift_card', 'Known scam app', $now)," +
-                "('org.scam.prizes.instant', 'Instant Prizes', 'prize', 'Known scam app', $now)"
+                "('com.imagecompress.android', 'Image Compress', 'premium_subscription', 'Joker malware (Check Point 2020)', $now)," +
+                "('com.contact.withme.texts', 'Contact With Me Texts', 'premium_subscription', 'Joker malware (Check Point 2020)', $now)," +
+                "('com.hmvoice.friendsms', 'Friend SMS', 'premium_subscription', 'Joker malware (Check Point 2020)', $now)," +
+                "('com.relax.relaxation.androidsms', 'Relaxation SMS', 'premium_subscription', 'Joker malware (Check Point 2020)', $now)," +
+                "('com.cheery.message.sendsms', 'Cheery Message', 'premium_subscription', 'Joker malware (Check Point 2020)', $now)," +
+                "('com.peason.lovinglovemessage', 'Loving Love Message', 'premium_subscription', 'Joker malware (Check Point 2020)', $now)," +
+                "('com.file.recovefiles', 'File Recovery', 'premium_subscription', 'Joker malware (Check Point 2020)', $now)," +
+                "('com.LPlocker.lockapps', 'LP Locker', 'premium_subscription', 'Joker malware (Check Point 2020)', $now)," +
+                "('com.remindme.alram', 'Remind Me Alarm', 'premium_subscription', 'Joker malware (Check Point 2020)', $now)," +
+                "('com.training.memorygame', 'Memory Training Game', 'premium_subscription', 'Joker malware (Check Point 2020)', $now)"
         )
 
-        // known_fake_cleaners: packageName, displayName, reason, addedAt
+        // known_fake_cleaners: HiddenAds cleaner apps (McAfee Labs, 2022)
         db.execSQL(
             "INSERT OR REPLACE INTO known_fake_cleaners (packageName, displayName, reason, addedAt) VALUES " +
-                "('com.cleaner.speedup.security', 'Cleaner SpeedUp Security', 'Known fake cleaner', $now)," +
-                "('com.super.clean.cool', 'Super Clean Cool', 'Known fake cleaner', $now)"
+                "('com.super.clean.zaz', 'Super Clean', 'HiddenAds fake cleaner (McAfee Labs 2022)', $now)," +
+                "('com.fingertip.clean.cvb', 'Fingertip Cleaner', 'HiddenAds fake cleaner (McAfee Labs 2022)', $now)," +
+                "('in.phone.clean.www', 'Windy Clean', 'HiddenAds fake cleaner (McAfee Labs 2022)', $now)," +
+                "('syn.clean.cool.zbc', 'Cool Clean', 'HiddenAds fake cleaner (McAfee Labs 2022)', $now)," +
+                "('in.memory.sys.clean', 'Strong Clean', 'HiddenAds fake cleaner (McAfee Labs 2022)', $now)," +
+                "('org.ssl.wind.clean', 'Meteor Clean', 'HiddenAds fake cleaner (McAfee Labs 2022)', $now)"
         )
 
-        // known_fake_antivirus: packageName, displayName, reason, addedAt
+        // known_fake_antivirus: SharkBot banking-trojan droppers (Check Point, 2022)
         db.execSQL(
             "INSERT OR REPLACE INTO known_fake_antivirus (packageName, displayName, reason, addedAt) VALUES " +
-                "('com.fake.antivirus.extreme', 'Antivirus Extreme', 'Known fake antivirus', $now)"
+                "('com.abbondioendrizzi.tools.supercleaner', 'Super Cleaner Tools', 'SharkBot dropper (Check Point 2022)', $now)," +
+                "('com.abbondioendrizzi.antivirus.supercleaner', 'Antivirus Super Cleaner', 'SharkBot dropper (Check Point 2022)', $now)," +
+                "('com.pagnotto28.sellsourcecode.alpha', 'Alpha Antivirus Cleaner', 'SharkBot dropper (Check Point 2022)', $now)," +
+                "('com.pagnotto28.sellsourcecode.supercleaner', 'Powerful Cleaner Antivirus', 'SharkBot dropper (Check Point 2022)', $now)," +
+                "('com.antivirus.centersecurity.freeforall', 'Center Security Antivirus', 'SharkBot dropper (Check Point 2022)', $now)," +
+                "('com.centersecurity.android.cleaner', 'Center Security Cleaner', 'SharkBot dropper (Check Point 2022)', $now)"
         )
 
-        // known_browser_hijackers: packageName, displayName, reason, addedAt
-        db.execSQL(
-            "INSERT OR REPLACE INTO known_browser_hijackers (packageName, displayName, reason, addedAt) VALUES " +
-                "('com.browser.searchescape', 'Search Escape', 'Known browser hijacker', $now)"
-        )
-
-        // known_notification_abusers: packageName, displayName, reason, addedAt
-        db.execSQL(
-            "INSERT OR REPLACE INTO known_notification_abusers (packageName, displayName, reason, addedAt) VALUES " +
-                "('com.news.popup.daily', 'News Popup Daily', 'Known notification abuser', $now)"
-        )
-
-        // exodus_trackers: packageName, appName, trackerCount
-        db.execSQL(
-            "INSERT OR REPLACE INTO exodus_trackers (packageName, appName, trackerCount) VALUES " +
-                "('com.facebook.katana', 'Facebook', 7)," +
-                "('com.whatsapp', 'WhatsApp', 1)," +
-                "('com.instagram.android', 'Instagram', 5)"
-        )
+        // known_browser_hijackers / known_notification_abusers: no verified public
+        // package lists bundled yet — tables stay empty rather than shipping made-up
+        // entries. RiskScoringEngine still queries them, so entries can be added later.
     }
 
     @Provides fun provideAppInfoDao(db: AppDatabase): AppInfoDao = db.appInfoDao()

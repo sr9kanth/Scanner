@@ -95,7 +95,8 @@ class AppScanRepositoryImpl @Inject constructor(
         } catch (e: Exception) { null }
 
         val hasAccessibility = hasActiveAccessibilityService(info.packageName)
-        val hasOverlay = permissions.contains(android.Manifest.permission.SYSTEM_ALERT_WINDOW)
+        val hasOverlay = permissions.contains(android.Manifest.permission.SYSTEM_ALERT_WINDOW) &&
+            isOverlayGranted(info)
         val hasNotification = permissions.contains(android.Manifest.permission.POST_NOTIFICATIONS)
 
         val riskScore = riskScoringEngine.calculateScore(
@@ -137,7 +138,30 @@ class AppScanRepositoryImpl @Inject constructor(
             context.contentResolver,
             android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
         ) ?: return false
-        return settingValue.split(":").any { it.startsWith(packageName) }
+        return settingValue.split(":").any {
+            android.content.ComponentName.unflattenFromString(it)?.packageName == packageName
+        }
+    }
+
+    /**
+     * Checks whether the "draw over other apps" capability is actually granted to the app,
+     * not merely requested in its manifest.
+     */
+    private fun isOverlayGranted(info: ApplicationInfo): Boolean {
+        val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as android.app.AppOpsManager
+        return try {
+            when (appOps.unsafeCheckOpNoThrow(
+                android.app.AppOpsManager.OPSTR_SYSTEM_ALERT_WINDOW, info.uid, info.packageName
+            )) {
+                android.app.AppOpsManager.MODE_ALLOWED -> true
+                android.app.AppOpsManager.MODE_DEFAULT -> context.packageManager.checkPermission(
+                    android.Manifest.permission.SYSTEM_ALERT_WINDOW, info.packageName
+                ) == PackageManager.PERMISSION_GRANTED
+                else -> false
+            }
+        } catch (e: Exception) {
+            false
+        }
     }
 
     private fun ApplicationInfo.isSystemApp() =

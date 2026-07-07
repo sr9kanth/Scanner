@@ -11,11 +11,24 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import javax.inject.Inject
 
+sealed interface DownloadScanResult {
+    /** The app has no filesystem access to the Downloads folder — a scan would be meaningless. */
+    object PermissionRequired : DownloadScanResult
+    data class Completed(val threats: List<ChromeDownloadThreat>) : DownloadScanResult
+}
+
 class ScanChromeDownloadsUseCase @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
 
-    suspend operator fun invoke(): List<ChromeDownloadThreat> = withContext(Dispatchers.IO) {
+    suspend operator fun invoke(): DownloadScanResult = withContext(Dispatchers.IO) {
+        // Reading other apps' .apk files from Downloads requires All Files Access on
+        // Android 11+ (minSdk 30). Without it listFiles() returns null and the scan
+        // would falsely report a clean device.
+        if (!Environment.isExternalStorageManager()) {
+            return@withContext DownloadScanResult.PermissionRequired
+        }
+
         val downloadsDir = Environment.getExternalStoragePublicDirectory(
             Environment.DIRECTORY_DOWNLOADS
         )
@@ -23,9 +36,9 @@ class ScanChromeDownloadsUseCase @Inject constructor(
         val files = downloadsDir?.listFiles()?.filter { file ->
             val name = file.name.lowercase()
             file.isFile && (name.endsWith(".apk") || name.endsWith(".apk.bin"))
-        } ?: emptyList()
+        } ?: return@withContext DownloadScanResult.PermissionRequired
 
-        files.map { file -> analyze(file) }
+        DownloadScanResult.Completed(files.map { file -> analyze(file) })
     }
 
     private fun analyze(file: File): ChromeDownloadThreat {

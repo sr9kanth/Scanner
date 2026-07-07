@@ -46,16 +46,18 @@ class ReportViewModel @Inject constructor(
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ReportUiState())
 
+    // Eager: buildReportText() reads .value directly, so this must collect without UI subscribers.
+    private val totalAppsScanned: StateFlow<Int> = appScanRepository.getAllApps()
+        .map { it.size }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, 0)
+
     fun buildReportText(): String {
         val state = uiState.value
         val score = state.healthScore?.score ?: 0
         val label = (state.healthScore?.grade ?: com.cleanguard.ai.domain.model.HealthGrade.AT_RISK).label
         val dateStr = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(java.util.Date())
 
-        val auditedCount = state.healthScore?.let {
-            maxOf(it.highRiskApps, state.highRiskApps.size) +
-                state.accessibilityApps.size + state.overlayApps.size
-        } ?: (state.highRiskApps.size + state.accessibilityApps.size + state.overlayApps.size)
+        val auditedCount = totalAppsScanned.value
 
         return buildString {
             appendLine("CLEANGUARD AI - SECURITY DIAGNOSTIC REPORT")
@@ -74,7 +76,7 @@ class ReportViewModel @Inject constructor(
                 state.highRiskApps.forEach { app ->
                     appendLine(
                         "• ${app.appName} (${app.packageName}) - Threat Level: " +
-                            "${app.riskLevel.label} (Score: ${app.riskScore}/100)"
+                            "${app.riskLevel.label} (Risk Score: ${app.riskScore})"
                     )
                     val reason = app.aiAssessment?.explanation?.takeIf { it.isNotBlank() }
                         ?: "Multiple high-risk signals"
